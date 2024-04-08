@@ -1,4 +1,5 @@
 # Continuous logistic Gaussian random measure fields for spatial distributional modelling
+### By Athenais Gautier and David Ginsbourger
 
 This repository contains the code and data associated with our paper titled "Continuous logistic Gaussian random measure fields for spatial distributional modelling". The detailed research can be accessed through our preprint: [arXiv:2110.02876](https://arxiv.org/abs/2110.02876).
 

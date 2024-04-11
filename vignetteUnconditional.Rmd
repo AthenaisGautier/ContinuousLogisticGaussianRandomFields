@@ -1,0 +1,372 @@
+---
+title: "Unconditional simulations of SLGPs, and computing continuity rates."
+author: "Athénaïs Gautier"
+date: "March 2024"
+output:
+  html_document:
+  #bookdown::pdf_document2 :
+  #  keep_tex: false
+  #  toc: false
+  #  number_sections: true
+    citation_package: natbib
+#bibliography: bibliography.bib
+header-includes:
+ \usepackage{float}
+ \usepackage{tikz}
+ \usepackage{xcolor}
+ \usepackage{amsmath, amsfonts, amsthm}
+ \floatplacement{figure}{H}
+ \usepackage{fvextra}
+ \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+
+---
+
+\newcommand{\xX}{\mathbf{x}}
+\newcommand{\xI}{\mathcal{T}}
+\newcommand{\xR}{\mathbb{R}}
+\newcommand{\dimI}{d_\xI}
+\newcommand{\dimD}{d_D}
+\newcommand{\dxx}{d_{\xX, \xX'}}
+\newcommand{\kincrement}{k_{\text{inc}}}
+\newcommand{\mincrement}{m_{\text{inc}}}
+\newcommand{\xM}{M(\xX, \xX')}
+\newcommand{\diam}{D_{\xX, \xX'}(\xI)}
+\newcommand{\xY}{\Vert \xX - \xX' \Vert^{\alpha_1 /2}}
+\newcommand{\sigFieldM}{\mathcal{B}(\xI)}
+
+\newcommand{\proc}[3]{
+\ifstrempty{#3}%
+{%
+\ifstrempty{#2}%
+{%
+#1
+}{%
+#1_{#2}
+}%
+}{%
+(#1_{#2})_{#3}
+}%
+}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(viridis)
+```
+
+# Result considered for this document
+
+
+In our paper \emph{Continuous logistic Gaussian random measure fields for spatial distributional modelling}, for $D \subset \xR^{\dimD}$ a compact and convex index space with $\dimD \geq 1$, we prove the following result:
+
+$\textbf{Condition 1}$  
+There exist $C, \alpha_1, \alpha_2 >0$ such that for all $\xX, \xX' \in D, t, t' \in \xI$:
+$\begin{equation*}
+k([\xX, t], [\xX, t]) + k([\xX', t'],[\xX', t']) - 2 k([\xX, t], [\xX', t']) \leq C \cdot \max(\Vert \xX - \xX' \Vert_\infty ^{\alpha_1}, \Vert t - t' \Vert_\infty ^{\alpha_2})
+\end{equation*}$
+
+$\textbf{Theorem 2}$  
+Consider the SLGP $Y$ induced by a centred GP $Z$ with covariance kernel $k$:
+$\begin{equation}
+\label{eq:informalSLGP}
+Y_{\xX, t} := \dfrac{e^{Z_{\xX, t}}}{\int_\xI e^{Z_{\xX, u}} \,d\lambda(u) } \text{ for all } (\xX, t) \in D \times \xI
+\end{equation}$
+and assume that $k$ satisfies the condition above.
+
+Then, for all $\gamma>0$ and $0<\delta < \gamma\alpha_1/2$ (for the first two Equations, resp. $0<\delta < \gamma\alpha_1$ for the last two Equations), there exists $K_{\gamma, \delta}>0$ such that for all $\xX, \xX' \in D^2$:  
+$$\begin{align}
+\mathbb{E} \left[ d_{H}({Y}_{\xX, \cdot}, {Y}_{\xX', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \xX - \xX' \Vert^{\gamma \alpha_1 /2 -\delta}_\infty \label{eq:cty_1bis}\\
+\mathbb{E} \left[ V({Y}_{\xX, \cdot}, {Y}_{\xX', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \xX - \xX' \Vert^{\gamma \alpha_1/2 -\delta}_\infty \label{eq:cty_0bis}\\
+\mathbb{E} \left[ KL({Y}_{\xX, \cdot}, {Y}_{\xX', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \xX - \xX' \Vert^{\gamma \alpha_1 -\delta}_\infty \label{eq:cty_2bis}   \\
+\mathbb{E} \left[ d_{TV}({Y}_{\xX, \cdot}, {Y}_{\xX', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \xX - \xX' \Vert^{\gamma \alpha_1 -\delta}_\infty \label{eq:cty_3bis} 
+\end{align}$$
+
+Where for two pdfs $f_1$, $f_2$ on $\xI$:
+
+* $d_{H}$ denotes the Hellinger distance: $d_H(f_1, f_2) := \sqrt{\frac{1}{2}\int_\xI \left( \sqrt{f_1(u)} - \sqrt{f_2(u)} \right)^2 \,du}$
+
+* $KL$ denotes the Kullback-Liebler divergence: $KL(f_1, f_2) := \int_\xI f_1(u) \log\left( f_1(u) / f_2(u)\right) \,du$
+
+* $V$ denotes a squared log-ratio dissimilarity: $V(f_1, f_2) := \int_\xI \left( \log \frac{ f_1(u)}{f_2(u)}\right)^2 \,du$
+
+* $d_{TV}$ denotes the Total Variation distance: $d_{TV}(f_1, f_2) := \int_\xI \left\vert f_1(u) - f_2(u) \right\vert \,du$
+
+
+\newpage
+
+# Deriving Hölder exponents in our theoretical upper bounds:
+
+In order to numerically validate the bounds in this Theorem, we first need to find the values of the Hölder exponents in the Condition for some kernels of interest.
+
+Three of the most commonly encountered kernels in spatial statistics are, for $\boldsymbol y=[\xX, t], \boldsymbol y'=[\xX', t'] \in D\times \xI$:
+
+* The exponential kernel:  
+$k_{exp}(\boldsymbol y, \boldsymbol y') = \exp\{-\Vert \xX - \xX \Vert_2 \} \cdot \exp\{-\vert t - t'\vert \}$
+
+* The Matérn-type kernel with half-integer smoothness parameter $\nu=p+\frac{1}{2}$:  
+$k_{mat, \nu}(\boldsymbol y, \boldsymbol y') = P_\nu(\sqrt{\Vert \xX - \xX \Vert_2^2 + (t-t')^2})\exp\{-\Vert \xX - \xX \Vert_2 \} \cdot \exp\{-\vert t - t'\vert \}$  
+where $P_\nu$ is a polynomial such that $P_\nu(0)=1$.
+
+* The Gaussian kernel:  
+$k_{gau}(\boldsymbol y, \boldsymbol y') = \exp\{-\Vert \xX - \xX \Vert_2^2 /2 \} \cdot \exp\{-( t - t')^2 /2 \}$
+
+
+In our case, since all three types of kernels are compactly supported, the Hölder exponents can be determined by examining the behaviour of these kernels for small values of $Vert \xX - \xX \Vert_2$ and of $(t-t')$.
+
+First, we note that since $P_\nu(0)=1$, the Matérn-type kernels are all equivalent to the exponential kernel at the neighborhood of $0$, and will therefore have the same exponent. Therefore, we will focus on the exponential kernel here.
+
+Then, we also observe that the exponential and Gaussian kernel are tensored kernels, where $\xX$ and $t$ play similar roles. As such, they will have the same Hölder exponent in both variables. Finally, note that for any $\alpha >0$:
+
+
+* For the exponential kernel:  
+$$\begin{align}
+\frac{d_{k_{exp}}^2(\boldsymbol y, \boldsymbol y')}{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha_\infty} &= \frac{k_{exp}(\boldsymbol y, \boldsymbol y) + k_{exp}(\boldsymbol y', \boldsymbol y') - 2 k_{exp}(\boldsymbol y, \boldsymbol y')}{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha_\infty}\\
+&=  \frac{2 - 2 k_{exp}(\boldsymbol y, \boldsymbol y')}{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha_\infty}\\
+&=  \frac{2 - 2 \exp \{ - \Vert \boldsymbol y - \boldsymbol y'\Vert_2 \} }{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha}\\
+&=  \frac{ 2 \Vert \boldsymbol y - \boldsymbol y'\Vert_2 - \mathcal{O}( \Vert \boldsymbol y - \boldsymbol y'\Vert^2_2) }{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha_\infty}
+\end{align}$$
+It follows immediately from this Taylor expansion that the Hölder exponent of the exponential kernel is $\alpha=1$.
+
+* For the Gaussian kernel:  
+$$\begin{align}
+\frac{d_{k_{gau}}^2(\boldsymbol y, \boldsymbol y')}{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha_\infty} &= \frac{k_{gau}(\boldsymbol y, \boldsymbol y) + k_{gau}(\boldsymbol y', \boldsymbol y') - 2 k_{gau}(\boldsymbol y, \boldsymbol y')}{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha_\infty}\\
+&=  \frac{2 - 2 k_{gau}(\boldsymbol y, \boldsymbol y')}{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha_\infty}\\
+&=  \frac{2 - 2 \exp \{ - \Vert \boldsymbol y - \boldsymbol y'\Vert_2^2 /2 \} }{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha}\\
+&=  \frac{ \Vert \boldsymbol y - \boldsymbol y'\Vert_2^2 - \mathcal{O}( \Vert \boldsymbol y - \boldsymbol y'\Vert^4_2) }{\Vert \boldsymbol y - \boldsymbol y' \Vert^\alpha_\infty}
+\end{align}$$
+It follows immediately from this Taylor expansion that the Hölder exponent of the Gaussian kernel is $\alpha=2$.
+
+# Unconditional simulations of 2D GPs, and transformation in SLGPs.
+
+Assuming that we are in the 2D setting where $\xX \in [0, 1]$ and $t\in [0, 1]$, we can use the kergp package to perform unconditional simulations of $Z_{x, t}$ on a grid, and compute the SLGPs from it.
+
+We use the package RandomFields to draw our unconditional simulations. It is not currently available directly from CRAN, but can be installed from the archive.
+```{r eval=FALSE}
+require(devtools)
+# paste0 to prevent the link to run out of page when Knitting as a pdf
+install.packages(paste0("https://cran.r-project.org/src/contrib/Archive/",
+                        "RandomFieldsUtils/RandomFieldsUtils_1.2.5.tar.gz"),
+                 repos = NULL, type = "source") 
+install.packages(paste0("https://cran.r-project.org/src/contrib/Archive/",
+                        "RandomFields/RandomFields_3.3.14.tar.gz"), 
+                 repos = NULL, type = "source")
+
+```
+
+
+Now, on a regular grid of size $51\times 51$, we can perform unconditional simulations of GPs with either Exponential or Gaussian kernel :
+```{r, fig.fullwidth=TRUE, fig.height=3, fig.cap = "Unconditional simulations of GPs with our two kernels of interest", fig.pos="H", warning=FALSE, message=FALSE}
+u <- seq(0, 1,, 51)
+dfGrid <- data.frame(expand.grid(u, u))
+colnames(dfGrid) <- c("x", "t")
+library(RandomFields)
+mod1 <- RMexp()
+mod2 <- RMgauss()
+
+set.seed(1)
+dfGrid$`GP with exponential kernel` <- RFsimulate(model=mod1, 
+                                                  x=dfGrid[, c(1, 2)], 
+                                                  grid=FALSE, 
+                                                  n=1)@data[, 1]
+set.seed(1)
+dfGrid$`GP with Gaussian kernel` <- RFsimulate(model=mod2, 
+                                               x=dfGrid[, c(1, 2)], 
+                                               grid=FALSE,
+                                               n=1)@data[, 1]
+dfGrid %>%
+  pivot_longer(-c("x", "t"))%>%
+  ggplot()+
+  geom_raster(mapping=aes(x=x, y=t, fill=value))+
+  facet_grid(.~name)+
+  theme_bw()
+```
+
+\newpage
+# Deriving the rates 
+
+In turn, we can simulate GPs (and transform them into SLGPs) with a step-size for $x$ that becomes increasingly smaller when getting close to zero.
+
+```{r, fig.fullwidth=TRUE, fig.height=2, fig.cap = "The x values used, with smaller step sizes around zero (log-scale).", fig.pos="H", warning=FALSE, message=FALSE}
+# Define parameters for the sequence generation
+start_values <- c(0, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1)
+end_values <- c(1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1)
+step_factors <- 0.05*end_values
+# Initialize the sequence
+ux <- numeric()
+# Generate the sequence
+for (i in 1:length(start_values)) {
+  # Generate each segment
+  segment <- seq(from = start_values[i], to = end_values[i], by = step_factors[i])
+  # Remove the first element if not the first segment
+  if (i > 1) segment <- segment[-1]
+  # Append the segment to the overall sequence
+  ux <- c(ux, segment)
+}
+
+ut <- seq(0, 1,, 101)
+dfGrid <- data.frame(expand.grid(ux, ut))
+colnames(dfGrid) <- c("x", "t")
+
+ggplot()+
+  geom_point(mapping=aes(x=ux, y=0), pch="|")  +
+  scale_x_log10()+
+  theme_bw()+ 
+  labs(y = NULL, x="x values at wich we simulate SLGPs") + 
+  guides(y = "none")
+```
+ We use 100 repetitions (10 batches of 10 simulations, to accommodate for laptops with small memories).
+
+```{r, eval=FALSE, warning=FALSE, message=FALSE}
+
+
+L <- list()
+L[[1]] <- L[[2]] <- list()
+deb <- Sys.time()
+for(ref in seq(2)){
+  if(ref==1){
+    mod <- mod1
+  }else{
+    mod <- mod2
+  }
+  for(rep in seq(10)){
+    print(paste0("Starting repetition ",
+                 rep, " of ref ", ref, " after ",
+                 round(difftime(Sys.time(), deb, unit="mins"), 1), " minutes."))
+    set.seed(rep)
+    #visualise
+    GP <- RFsimulate(model=mod, x=dfGrid, grid=FALSE, n=10) # 10 batches of 10 for memory issues 
+    GP <- as.matrix(GP@data)
+    colnames(GP) <- paste0("Draw", seq(ncol(GP)))
+    dfTemp <- data.frame(dfGrid, GP)
+    dfTemp <- dfTemp%>%
+      pivot_longer(-c("x", "t"))%>%
+      rename(GP=value)%>%
+      group_by(x, name)%>%
+      mutate(SLGP=exp(GP-max(GP))/mean(exp(GP-max(GP))))%>%
+      ungroup()%>%
+      dplyr::select(-GP)%>%
+      data.frame()
+    dfRef <- dfTemp %>%
+      filter(x==0) %>%
+      dplyr::select(-x)
+    colnames(dfRef)[3] <- "SLGP0"
+    dfTemp <- merge(dfTemp, dfRef, all.x=TRUE, by=c("t", "name"))
+    dfTemp <- dfTemp%>%
+      group_by(x, name)%>%
+      summarise(dH = sqrt(mean((sqrt(SLGP)-sqrt(SLGP0))^2)),
+                dTV = mean(abs(SLGP - SLGP0)),
+                V = mean((log(SLGP/SLGP0))^2),
+                KL= mean(SLGP*log(SLGP/SLGP0)),
+                .groups = "keep")%>%
+      mutate(rep=rep, 
+             ref=c("Exponential kernel", "Gaussian kernel")[ref])%>%
+      data.frame()
+    L[[ref]][[rep]]<- dfTemp
+  }
+}
+save(L, file="saved_distances_unconditional.RData")
+```
+We decided to do the computations and save them in $L$ to make them available at any time without having to run all the simulations every time (in the authors current laptop, simulations are performed in approximately 5 minutes).
+\newpage
+
+We then need to merge the data frame containing the distances, and compute the expected values in the left-hand terms of our theorem, as well as the theoretical bound for the right-hand term.
+
+```{r, warning=FALSE, message=FALSE}
+load(file="saved_distances_unconditional.RData")
+# Merging the dataframes
+df_dist <- data.frame()
+for(ref in seq(2)){
+  for(rep in seq(10)){
+    df_dist <- rbind(df_dist, L[[ref]][[rep]])
+  }
+}
+# Theoretical rates
+df_theoretical1 <- unique(df_dist[,c("x", "ref")])
+df_theoretical <- data.frame()
+for(gamma in c(0.5, 1, 2)){
+  for(dist in seq(4)){
+    df_theoretical1$gamma<- gamma
+    df_theoretical1$name <- c("dH", "dTV", "KL", "V")[dist]
+    df_theoretical1$value <- ifelse(df_theoretical1$ref=="Exponential kernel", 
+                                    df_theoretical1$x^(1*gamma*c(0.5, 0.5, 1, 1)[dist]),
+                                    df_theoretical1$x^(2*gamma*c(0.5, 0.5, 1, 1)[dist]))
+    df_theoretical <- rbind(df_theoretical, 
+                            df_theoretical1)
+  }
+}
+rm(df_theoretical1)
+
+#Empirical rates
+df_empirical<- data.frame()
+for(gamma in c(0.5, 1, 2)){
+  df_empirical1 <- df_dist
+  df_empirical1$gamma<- gamma
+  df_empirical1<-df_empirical1 %>%
+    dplyr::select(c("x", "ref", "dH", "dTV", "KL", "V", "gamma"))%>%
+    pivot_longer(-c("x", "ref", "gamma"))%>%
+    group_by(x, ref, name, gamma) %>%
+    mutate(value=round(value, 15))%>% #numerical stability
+    summarise(value=mean(value^gamma), .groups="keep")%>%
+    ungroup()%>%
+    data.frame()
+  df_empirical <- rbind(df_empirical, 
+                        df_empirical1)
+}
+rm(df_empirical1)
+
+```
+
+\newpage
+Finally, we re-scale (by a constant) every curve to display everything on the same plot with the same plot, and produce the Figure from the paper.
+
+```{r fig.cap="Empirical and theoretical rates, as estimated on unconditional simulations", fig.fullwidth=TRUE, fig.height=5, fig.pos="H", warning=FALSE, message=FALSE}
+max_x <- 0.01
+df_empirical$type <- "Empirical rates"
+df_theoretical$type <- "Theoretical rates"
+df_plot <- rbind(df_empirical,
+                 df_theoretical)
+df_plot%>%
+  group_by(ref, type, gamma, name)%>%
+  filter(x <= 2*max_x)%>%
+  mutate(value=value/max(value*1*(x<=max_x)))%>%
+  mutate(gamma=paste0("Gamma =", gamma)) %>%
+  ggplot(aes(x=x, y=value, col=ref, lty=type, lwd=type))+
+  geom_line()+
+  theme_bw()+
+  facet_grid(gamma~name)+
+  coord_cartesian(ylim=c(0, 1), xlim=c(0, max_x))+
+  ylab("Re-scaled dissimilarity")+
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust=1))+
+  scale_linewidth_manual( values = c("Empirical rates"=1,
+                                     "Theoretical rates"=2) ) +
+  scale_linetype_manual( values = c("Empirical rates"=1,
+                                    "Theoretical rates"=2))+
+  guides(color = guide_legend(nrow=1,
+                              title="Kernel considered",
+                              direction = "horizontal",
+                              title.position = 'top',
+                              #/ some shifting around
+                              title.hjust = 0.5,
+                              label.hjust = 0.5),
+         linetype = guide_legend(nrow=1,
+                                 title="Rates represented",
+                                 direction = "horizontal",
+                                 title.position = 'top',
+                                 # some shifting around
+                                 title.hjust = 0.5,
+                                 label.hjust = 0.5),
+         linewidth = guide_legend(nrow=1,
+                                  title="Rates represented",
+                                  direction = "horizontal",
+                                  title.position = 'top',
+                                  # some shifting around
+                                  title.hjust = 0.5,
+                                  label.hjust = 0.5)) +
+  scale_x_continuous(labels = function(x)format(x, scientific = TRUE,  digits = 1), 
+                     breaks=seq(0, max_x,, 5))
+ggsave(paste0("./figures/ratesHolder.png"),
+       width=6, height=5)
+
+```

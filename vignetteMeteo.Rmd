@@ -1,0 +1,394 @@
+---
+title: "An application: SLGP-based prediction of temperature distributions at meteorological stations in Switzerland."
+author: "Athénaïs Gautier"
+date: "Last revised - October 2024"
+output:
+  html_document:
+  #bookdown::pdf_document2 :
+  #  keep_tex: false
+  #  toc: false
+  #  number_sections: true
+    citation_package: natbib
+bibliography: references.bib
+header-includes:
+ \usepackage{float}
+ \usepackage{tikz}
+ \usepackage{xcolor}
+ \usepackage{amsmath, amsfonts, amsthm}
+ \floatplacement{figure}{H}
+ \usepackage{fvextra}
+ \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+
+---
+
+\newcommand{\xX}{\mathbf{x}}
+\newcommand{\xI}{\mathcal{T}}
+\newcommand{\xR}{\mathbb{R}}
+\newcommand{\dimI}{d_\xI}
+\newcommand{\dimD}{d_D}
+\newcommand{\dxx}{d_{\xX, \xX'}}
+\newcommand{\kincrement}{k_{\text{inc}}}
+\newcommand{\mincrement}{m_{\text{inc}}}
+\newcommand{\xM}{M(\xX, \xX')}
+\newcommand{\diam}{D_{\xX, \xX'}(\xI)}
+\newcommand{\xY}{\Vert \xX - \xX' \Vert^{\alpha_1 /2}}
+\newcommand{\sigFieldM}{\mathcal{B}(\xI)}
+
+\newcommand{\proc}[3]{
+\ifstrempty{#3}%
+{%
+\ifstrempty{#2}%
+{%
+#1
+}{%
+#1_{#2}
+}%
+}{%
+(#1_{#2})_{#3}
+}%
+}
+
+```{r loadlibs, setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(viridis)
+```
+
+## Introduction
+
+In this vignette, we apply the Spatial Logistic Gaussian Process (SLGP) model to estimate temperature distributions at meteorological stations across Switzerland. This example illustrates SLGP's capacity to model spatial temperature variations based on location-specific factors, such as latitude, longitude, and altitude, using real meteorological data made available by MeteoSwiss [@meteorology_climatological_2019].
+
+## Data Loading and Visualization
+
+We begin by loading and visualizing the dataset of daily average temperatures at 29 meteorological stations across Switzerland. This initial step provides insight into temperature variability across different regions and altitudes.
+
+```{r dataset}
+# Dataset
+X <- read.csv("./data_meteo.txt", encoding = "latin1")
+stations <- unique(X[, c(1, 8:13)])
+
+world_map <- map_data("world", region="Switzerland") #Load a map
+```
+
+```{r topography, fig.fullwidth=TRUE, fig.height=5,fig.pos="H", warning=FALSE, message=FALSE, include=FALSE}
+load(file="topography.RData")
+switzerland <- ggplot() + 
+  geom_raster(topography, mapping=aes(x=long, y=lat, fill=h*0), fill="white") +
+  geom_raster(topography, mapping=aes(x=long, y=lat, fill=h), alpha=0.5) +
+  theme_void()+
+  theme(legend.position="bottom", 
+        legend.box = "horizontal") +
+  scale_fill_viridis(option = "turbo", direction = +1, 
+                     name="Elevation [m]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = F,
+                       title.position = 'top',
+                       # some shifting around
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))+ 
+  xlab("Longitude") + ylab("Latitude") 
+```
+
+```{r mapplot1, include=FALSE, fig.cap="Meteorological stations where measurements are available"}
+library(ggrepel)
+plot_map <-switzerland+
+  # theme_classic()+
+  geom_point(data=stations, mapping = aes(x=Longitude, y=Latitude)) +
+  geom_label_repel(data=stations,
+                   aes(x = Longitude, y = Latitude, label=Station),
+                   size=3, alpha=0.9, 
+                   point.padding = 0., 
+                   nudge_x = .25,
+                   nudge_y = .25,
+                   segment.curvature = -1e-20)+
+  theme(plot.title=element_text(size=10, hjust = 0.5))
+plot_map
+```
+
+To ensure a smooth modeling process, we prepare the dataset by renaming variables for clarity and storing their respective value ranges. This step facilitates easier handling of variables in subsequent modeling steps.
+
+```{r startinit}
+#Ready to normalise
+range_temp <- c(-30, 40)
+range_lat <- range(world_map$lat)
+range_long <- range(world_map$long)
+range_height <- c(0, 4810)
+
+#Extract the relevant columns
+samples <- X[, c("tre200d0", "Latitude", "Longitude", "Station.height.m..a..sea.level")]
+colnames(samples) <- c("Temperature", "Latitude", "Longitude", "Altitude")
+summary(samples)
+```
+
+We will use data from stations outside the canton of Bern for training the SLGP model, leaving the remaining stations as a test set to assess generalization. The model will predict temperature distributions based on the latitude, longitude, and altitude of each station.
+
+```{r plotdensities, fig.fullwidth=TRUE, fig.height=5,fig.pos="H", warning=FALSE, message=FALSE}
+plotDensities <- merge(samples, stations[, c(2, 4, 5, 7)]) %>%
+  mutate(inCantonBE = Canton=="BE")%>%
+  ggplot()+  
+  geom_histogram(mapping=aes(x=Temperature, y=after_stat(density), col=inCantonBE, fill=inCantonBE), 
+                 breaks = seq(-30, 40, 2.5), alpha=0.2)+
+  geom_density(mapping=aes(x=Temperature, col=inCantonBE))+
+  scale_color_manual(values=c("darkgrey", "cornflowerblue"))+
+  scale_fill_manual(values=c("darkgrey", "cornflowerblue"))+
+  facet_wrap(Station~.)+
+  theme_bw() +
+  theme(legend.position = "bottom")+
+  labs(title = "Temperature distribution by station.",
+       subtitle = "Histograms and pointwise kernel density estimators (grey for the train set, blue for the test).",
+       x = "Temperature (°C)",
+       y = "Density",
+       color = "Station in the canton of Bern",
+       fill = "Station in the canton of Bern")
+plotDensities
+```
+
+## Initial SLGP Estimation with Arbitrary Hyperparameters
+
+
+To understand the model's baseline behavior, we perform an initial SLGP estimation using arbitrary hyperparameters. This first run provides insight into the model’s ability to capture the temperature distribution’s overall structure.
+
+```{r SLGPtoobig, fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.pos="H", warning=FALSE, message=FALSE}
+library(SLGP)
+samples <- merge(samples, stations[, c(2, 4, 5, 7)]) %>%
+  mutate(inCantonBE = Canton=="BE")
+
+model1 <- slgp(Temperature~.,
+               data=samples[!samples$inCantonBE, 1:4],
+               method="MAP",
+               basisFunctionsUsed = "RFF",
+               interpolateBasisFun="nothing",
+               hyperparams = list(lengthscale=rep(0.3, 4), 
+                                  sigma2=1),
+               predictorsUpper= c(range_lat[2], 
+                                  range_long[2], 
+                                  range_height[2]),
+               predictorsLower= c(range_lat[1], 
+                                  range_long[1], 
+                                  range_height[1]),
+               responseRange= range_temp,
+               sigmaEstimationMethod = "heuristic",
+               seed=1,
+               opts_BasisFun = list(nFreq=250,
+                                    MatParam=5/2))
+dfGrid <- expand.grid(seq(-30, 40,, 1001), seq(nrow(stations)))
+dfGrid <- cbind(dfGrid[, 1], stations[dfGrid[, 2], c(4, 5, 3)])
+colnames(dfGrid) <- c("Temperature", "Latitude", "Longitude", "Altitude")
+pred <- predictSLGP_newNode(SLGPmodel=model1,
+                            newNodes = dfGrid)
+pred <- merge(pred, stations[, c(2, 4, 5, 7)]) %>%
+  mutate(inCantonBE = Canton=="BE")
+
+plotDensities + 
+  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_1),
+            col="red")+
+  labs(title = "Temperature distribution by station.",
+       subtitle = "Histograms and pointwise kernel density estimators 
+       (grey for the train set, blue for the test),
+       \nSLGP MAP estimator with poorly chosen hyperparameters (red curves).")
+```
+
+The initial results show that while the model captures the general support of the temperature distribution, it fails to capture finer details, such as multi-modalities in certain distributions. This limitation likely arises from using a large length scale, which oversmooths small-scale variations.
+
+To investigate further, we run the SLGP with a much smaller length scale. This adjustment helps reveal the model’s response to hyperparameter tuning and allows us to compare results across different spatial aggregation levels.
+
+
+```{r SLGPtoosmall, fig.fullwidth=TRUE,  fig.height=8, fig.width=10, fig.pos="H", warning=FALSE, message=FALSE}
+model2 <- slgp(Temperature~.,
+               data=samples[!samples$inCantonBE, 1:4],
+               method="MAP",
+               basisFunctionsUsed = "RFF",
+               interpolateBasisFun="nothing",
+               hyperparams = list(lengthscale=rep(0.05, 4), 
+                                  sigma2=1),
+               predictorsUpper= c(range_lat[2], 
+                                  range_long[2], 
+                                  range_height[2]),
+               predictorsLower= c(range_lat[1], 
+                                  range_long[1], 
+                                  range_height[1]),
+               responseRange= range_temp,
+               sigmaEstimationMethod = "heuristic",
+               seed=1,
+               opts_BasisFun = list(nFreq=250,
+                                    MatParam=5/2))
+pred <- predictSLGP_newNode(SLGPmodel=model2,
+                            newNodes = dfGrid)
+pred <- merge(pred, stations[, c(2, 4, 5, 7)]) %>%
+  mutate(inCantonBE = Canton=="BE")
+
+plotDensities + 
+  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_1),
+            col="red")+
+  labs(title = "Temperature distribution by station.",
+       subtitle = "Histograms and pointwise kernel density estimators 
+       (grey for the train set, blue for the test),
+       \nSLGP MAP estimator with poorly chosen hyperparameters (red curves).")
+```
+
+This time, while the model provides accurate temperature estimates at stations within the training set, it generalizes poorly to test stations. Using too small a length scale restricts the model’s spatial aggregation, limiting the reach of spatial information to a very local scope.
+
+## Selecting an Optimal Length Scale with Grid Search
+
+To balance between overly small and overly large length scales, we propose selecting an appropriate length-scale hyperparameter via a grid search, aiming to find a balanced length scale that performs well across different spatial contexts. This grid search involves computing the (unnormalized) posterior for various candidate length scales, and selecting the hyperparameter value that maximizes it. This approach seeks a compromise between the previously observed limitations: length scales that are too small, which limit spatial aggregation, and those that are too large, which oversmooth local variations.
+
+In Switzerland, we expect altitude to be the most significant factor influencing temperature variation, often more so than latitude and longitude. Consequently, we opted to share a single length scale for latitude and longitude, thereby slightly reducing the computational cost of estimation and simplifying the visualization of the results. For clarity, the code presented here is structured as a single loop; however, in practical applications, we parallelized the computations to improve efficiency.
+
+```{r CV, eval=FALSE}
+dinvgamma <- function(x, alpha=3, beta=0.3) {
+  ifelse(x<=0, 0, (beta^alpha / gamma(alpha)) * x^(-alpha - 1) * exp(-beta / x))
+}
+
+df_res <- data.frame(lt=NA, lx1=NA, lx2=NA, lx3=NA, value=NA)[c(0), ]
+for(lx1 in seq(0.05, 0.5, 0.05)){
+  lx2 <- lx1
+  for(lx3 in seq(0.05, 0.5, 0.05)){
+    for(lt in  seq(0.05, 0.3, 0.025)){
+      starting_lengthscale <- c(lt, lx1, lx2, lx3)
+      names(starting_lengthscale) <- paste0("Lengthscale ", c("t", name_index))
+      print(starting_lengthscale)
+      
+      mod <- slgp(Temperature~.,
+                  data=samplesTrain,
+                  method="MAP",
+                  basisFunctionsUsed = "RFF",
+                  interpolateBasisFun="nothing",
+                  hyperparams = list(lengthscale=starting_lengthscale,
+                                     sigma2=1),
+                  predictorsUpper= c(range_lat[2],
+                                     range_long[2],
+                                     range_height[2]),
+                  predictorsLower= c(range_lat[1],
+                                     range_long[1],
+                                     range_height[1]),
+                  responseRange= range_temp,
+                  sigmaEstimationMethod = "heuristic",
+                  seed=1,
+                  opts_BasisFun = list(nFreq=250,
+                                       MatParam=5/2))
+      pred <- predictSLGP_newNode(SLGPmodel=mod,
+                                  newNodes = samplesTest)
+      logprior <- log(dinvgamma(lx1))+log(dinvgamma(lx2))+log(dinvgamma(lx3))+log(dinvgamma(lt))
+      df_res <- rbind(dfres, c(starting_lengthscale, -sum(log(pred$pdf_1))-logprior))
+    }
+  }
+}
+save(df_res, file="resultsMeteo.RData" )
+```
+
+We can now display the resulting optimisation profile. 
+
+```{r include=FALSE}
+library(scales)
+load(file="resultsMeteo.RData" )
+best_value <- range(df_res$value)
+
+# Only display a subplot, for compacity purposes
+ind <- df_res$`Lengthscale t` <= 0.3 &
+  df_res$`Lengthscale x3`<= 0.25 &
+  df_res$`Lengthscale x1`<= 0.5 &
+  df_res$`Lengthscale x1`>= 0.25
+
+
+df_res <- df_res[ind, ]
+df_res <- df_res %>%
+  mutate(`Lengthscale t`=`Lengthscale t`*100)%>%
+  mutate(`Lengthscale x1`=ifelse(`Lengthscale x1`==0.05,
+                                 paste0("Latitude\nlongitude\n05% of range"),
+                                 paste0("Latitude\nlongitude\n", `Lengthscale x1`*100, "% of range")))%>%
+  mutate(`Lengthscale x3`=ifelse(`Lengthscale x3`==0.05,
+                                 paste0("Altitude\n05% of range"),
+                                 paste0("Altitude\n", `Lengthscale x3`*100, "% of range")))%>%
+  group_by_at(paste0("Lengthscale x", seq(3)))%>%
+  mutate(gives_min=any(value==best_value[1]))%>%
+  mutate(to1percentmin=any(value<=0.99*best_value[1]))%>%
+  ungroup()
+
+list_lx <- seq(0.05, 0.5, 0.05)
+list_lt <- seq(0.05, 0.3, 0.025)
+df_res %>%
+  ggplot(aes(x=`Lengthscale t`, y=value))+
+  geom_line()+
+  geom_rect(data = subset(df_res, to1percentmin&!gives_min&`Lengthscale t`==10), 
+            fill = "cornflowerblue", col="blue", lty=2,
+            alpha=0.1,
+            xmin = 100*(list_lt[1]-diff(range(list_lt))*10.04), 
+            xmax = 100*(list_lt[length(list_lt)]+diff(range(list_lt))*10.04),
+            ymin = 1*(best_value[1]-diff(best_value)*10.03), 
+            ymax = 1*(best_value[2]+diff(best_value)*10.03))+
+  geom_rect(data = subset(df_res, gives_min), 
+            fill = "green", alpha=0.01,
+            colour = "forestgreen", lty=1,
+            xmin = 100*(list_lt[1]-diff(range(list_lt))*10.04), 
+            xmax = 100*(list_lt[length(list_lt)]+diff(range(list_lt))*10.04),
+            ymin = 1*(best_value[1]-diff(best_value)*10.03), 
+            ymax = 1*(best_value[2]+diff(best_value)*10.03))+
+  facet_grid(`Lengthscale x3`~`Lengthscale x1`)+
+  theme_bw()+
+  geom_hline(yintercept=min(df_res$value), col="grey")+
+  xlab("Lengthscale for Temperature (in % of range)")+
+  ylab("Negative log-posterior")+ 
+  scale_y_continuous(labels = scientific)
+```
+
+Using the optimal length scale hyperparameter identified in the grid search, we perform the final SLGP estimation. This provides the best compromise between local accuracy and generalization, as shown by improved prediction results at the test stations.
+
+```{r SLGPgood, fig.fullwidth=TRUE, fig.height=5,fig.pos="H", warning=FALSE, message=FALSE, eval=FALSE}
+load(file="resultsMeteo.RData" )
+
+lengthscale <- as.numeric(df_res[which.min(df_res$value), 1:4])
+model3 <- slgp(Temperature~.,
+               data=samples[!samples$inCantonBE, 1:4],
+               method="MCMC",
+               basisFunctionsUsed = "RFF",
+               interpolateBasisFun="nothing",
+               hyperparams = list(lengthscale=lengthscale, 
+                                  sigma2=1),
+               predictorsUpper= c(range_lat[2], 
+                                  range_long[2], 
+                                  range_height[2]),
+               predictorsLower= c(range_lat[1], 
+                                  range_long[1], 
+                                  range_height[1]),
+               responseRange= range_temp,
+               sigmaEstimationMethod = "heuristic",
+               seed=1,
+               opts_BasisFun = list(nFreq=250,
+                                    MatParam=5/2),
+               opts = list(stan_chains=2, stan_iter=1000))
+save(model3, file="ModelOptimizedLen.RData")
+```
+
+```{r SLGPgood2, fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.pos="H", warning=FALSE, message=FALSE}
+load(file="ModelOptimizedLen.RData")
+
+pred <- predictSLGP_newNode(SLGPmodel=model3,
+                            newNodes = dfGrid)
+pred$mean_pdf <- rowMeans(pred[, -c(1:4)])
+
+pred <- merge(pred, stations[, c(2, 4, 5, 7)]) %>%
+  mutate(inCantonBE = Canton=="BE")
+
+plotDensities + 
+  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_1),
+            col="black", lwd=0.1)+
+  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_201),
+            col="black", lwd=0.1)+
+  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_401),
+            col="black", lwd=0.1)+
+  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_601),
+            col="black", lwd=0.1)+
+  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_801),
+            col="black", lwd=0.1)+
+  geom_line(data = pred, mapping=aes(x=Temperature, y=mean_pdf),
+            col="red")+
+  labs(title = "Temperature distribution by station.",
+       subtitle = "Histograms and pointwise kernel density estimators 
+       (grey for the train set, blue for the test),
+       \nSLGP MCMC estimators with optimally chosen hyperparameters (draws in black, mean in red).")
+```

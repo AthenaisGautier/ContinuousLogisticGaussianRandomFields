@@ -352,7 +352,7 @@ display: none;
 <h1 class="title toc-ignore">Unconditional simulations of SLGPs, and
 computing continuity rates.</h1>
 <h4 class="author">Athénaïs Gautier</h4>
-<h4 class="date">March 2024</h4>
+<h4 class="date">Last revised - October 2024</h4>
 
 </div>
 
@@ -365,20 +365,22 @@ result:</p>
 <p><span class="math inline">\(\textbf{Condition 1}\)</span><br />
 There exist <span class="math inline">\(C, \alpha_1, \alpha_2
 &gt;0\)</span> such that for all <span class="math inline">\(\mathbf{x},
-\mathbf{x}&#39; \in D, t, t&#39; \in \mathcal{T}\)</span>: <span class="math inline">\(\begin{equation*} k([\mathbf{x}, t], [\mathbf{x},
-t]) + k([\mathbf{x}&#39;, t&#39;],[\mathbf{x}&#39;, t&#39;]) - 2
-k([\mathbf{x}, t], [\mathbf{x}&#39;, t&#39;]) \leq C \cdot \max(\Vert
-\mathbf{x}- \mathbf{x}&#39; \Vert_\infty ^{\alpha_1}, \Vert t - t&#39;
-\Vert_\infty ^{\alpha_2}) \end{equation*}\)</span></p>
+\mathbf{x}&#39; \in D, t, t&#39; \in \mathcal{T}\)</span>: <span class="math inline">\(\begin{equation*}
+k([\mathbf{x}, t], [\mathbf{x}, t]) + k([\mathbf{x}&#39;,
+t&#39;],[\mathbf{x}&#39;, t&#39;]) - 2 k([\mathbf{x}, t],
+[\mathbf{x}&#39;, t&#39;]) \leq C \cdot \max(\Vert \mathbf{x}-
+\mathbf{x}&#39; \Vert_\infty ^{\alpha_1}, \Vert t - t&#39; \Vert_\infty
+^{\alpha_2})
+\end{equation*}\)</span></p>
 <p><span class="math inline">\(\textbf{Theorem 2}\)</span><br />
 Consider the SLGP <span class="math inline">\(Y\)</span> induced by a
 centred GP <span class="math inline">\(Z\)</span> with covariance kernel
-<span class="math inline">\(k\)</span>: <span class="math inline">\(\begin{equation} \label{eq:informalSLGP}
+<span class="math inline">\(k\)</span>: <span class="math inline">\(\begin{equation}
+\label{eq:informalSLGP}
 Y_{\mathbf{x}, t} := \dfrac{e^{Z_{\mathbf{x},
 t}}}{\int_\mathcal{T}e^{Z_{\mathbf{x}, u}} \,d\lambda(u) } \text{ for
-all } (\mathbf{x}, t) \in D \times \mathcal{T}\end{equation}\)</span>
-and assume that <span class="math inline">\(k\)</span> satisfies the
-condition above.</p>
+all } (\mathbf{x}, t) \in D \times \mathcal{T}
+\end{equation}\)</span> and assume that <span class="math inline">\(k\)</span> satisfies the condition above.</p>
 <p>Then, for all <span class="math inline">\(\gamma&gt;0\)</span> and
 <span class="math inline">\(0&lt;\delta &lt; \gamma\alpha_1/2\)</span>
 (for the first two Equations, resp. <span class="math inline">\(0&lt;\delta &lt; \gamma\alpha_1\)</span> for the

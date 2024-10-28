@@ -1,7 +1,7 @@
 ---
 title: "Unconditional simulations of SLGPs, and computing continuity rates."
 author: "Athénaïs Gautier"
-date: "March 2024"
+date: "Last revised - October 2024"
 output:
   html_document:
   #bookdown::pdf_document2 :

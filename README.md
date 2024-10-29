@@ -13,7 +13,7 @@ Finally, we propose an implementation using Random Fourier Features and showcase
 
 ## Continuity modulus of SLGPs
 
-https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteUnconditional.html
+[The concerned vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteUnconditional.html)
 
 ## Posterior consistency of SLGP-based density estimation
 

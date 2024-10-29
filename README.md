@@ -15,6 +15,34 @@ Finally, we propose an implementation using Random Fourier Features and showcase
 
 [The concerned vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteUnconditional.html)
 
+In the main body of the paper, we make the following claim:
+
+For $D \subset \mathbb{R}^{d_D}$ a compact and convex index space with $d_D\geq 1$, we prove the following
+result:
+ 
+**Condition 1**
+
+There exist $C, \alpha_1, \alpha_2>0$ such that for all $\mathbf{x},
+\mathbf{x'}; \in D, t, t' \in \mathcal{T}$:
+
+$$k([\mathbf{x}, t], [\mathbf{x}, t]) + k([\mathbf{x}',
+t'],[\mathbf{x}', t']) - 2 k([\mathbf{x}, t],
+[\mathbf{x}', t']) \leq C \cdot \max(\Vert \mathbf{x}-
+\mathbf{x}' \Vert_\infty ^{\alpha_1}, \Vert t - t' \Vert_\infty
+^{\alpha_2})$$
+
+**Theorem 2**
+
+Consider the SLGP $Y$ induced by a centred GP $Z$ with covariance kernel $k$: 
+
+$$Y_{\mathbf{x}, t} := \dfrac{e^{Z_{\mathbf{x},
+t}}}{\int_\mathcal{T}e^{Z_{\mathbf{x}, u}} \,d\lambda(u) } \text{ for
+all } (\mathbf{x}, t) \in D \times \mathcal{T}
+$$
+
+and assume that $k$ satisfies the condition above.
+
+
 ## Posterior consistency of SLGP-based density estimation
 
 [The concerned vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteConsistency.html)

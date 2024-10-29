@@ -13,7 +13,7 @@ Finally, we propose an implementation using Random Fourier Features and showcase
 
 ## Continuity modulus of SLGPs
 
-[The concerned vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteUnconditional.html)
+[The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteUnconditional.html)
 
 In the main body of the paper, we make the following claim:
 
@@ -45,8 +45,8 @@ and assume that $k$ satisfies the condition above.
 
 ## Posterior consistency of SLGP-based density estimation
 
-[The concerned vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteConsistency.html)
+[The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteConsistency.html)
 
-# A meteorological application on real-world data
+## A meteorological application on real-world data
 
-[The concerned vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteMeteo.html)
+[The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteMeteo.html)

@@ -544,6 +544,12 @@ dfres %>%
 ggsave("consistency-distance.png", width = 10, height=10)
 ```
 
+We observe that the quality of the SLGP model’s fit varies across different parameterizations and levels of spatial regularity. In general, on this reduced benchmark, specifying a SLGP that is smoother than the reference field yields better estimation performance than the opposite. Additionally, as expected, increasing the number of basis functions enhances the model’s flexibility, enabling it to better capture fine-scale features.
+
+To further investigate why misfit values plateau and do not converge to zero, we conducted additional experiments. We found that this behavior arises because the data was approximately sampled, meaning the model is effectively recovering this approximation rather than the original "reference" fields.
+
+In the following figures, we display the MAP estimate of the density fields for different sample sizes within a well-specified SLGP setting. These visuals illustrate how the model's performance improves as sample size increases, particularly in settings with smoother spatial regularity.
+
 ```{r eval=FALSE, include=FALSE}
 rep <- 2
 ref <- 1
@@ -558,102 +564,124 @@ for(ref in seq(4)){
   if(ref==1){
     current_samp <- data.frame(t=samp$t1, x=samp$x)
     refval <- pred1$pdf_1
-    BasisFunParam <- SLGP1@BasisFunParam
   }
   if(ref==2){
     current_samp <- data.frame(t=samp$t2, x=samp$x) 
     refval <- pred2$pdf_1
-    BasisFunParam <- SLGP2@BasisFunParam
   }
   if(ref==3){
     current_samp <- data.frame(t=samp$t3, x=samp$x) 
     refval <- pred3$pdf_1
-    BasisFunParam <- SLGP3@BasisFunParam
     
   }
   if(ref==4){
     current_samp <- data.frame(t=samp$t4, x=samp$x) 
     refval <- pred4$pdf_1
-    BasisFunParam <- SLGP4@BasisFunParam
   }
   dfplot$name <- "Reference"
   dfplot$pdf_1 <- refval
-  modid <- ref
-  for(n in c(50, 500, 5000, 50000)){
-    title_file <- paste0("./res/SLGP_ref", ref, 
-                         "_mod", modid, "_freq", nFreq, 
-                         "_n", n, "_rep", rep, ".RData")
-    cat(title_file, "\n")
-    
-    if(file.exists(title_file)){
-      load(file=title_file)
-    }else{
-      current_samp2 <- current_samp[1:n, ]
-      BasisFunParam$freq <- BasisFunParam$freq[c(1:nFreq, 500+(1:nFreq)), ]
-      BasisFunParam$coef <- rep(1/sqrt(nFreq), 2*nFreq)
-      BasisFunParam$offset <- BasisFunParam$offset[c(1:nFreq, 500+(1:nFreq))]
-      if(modid==4){
-        mod <- slgp(t~x,
-                    data=current_samp2,
-                    method ="MAP",
-                    basisFunctionsUsed="RFF",
-                    interpolateBasisFun="WNN",
-                    hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
-                    predictorsUpper= c(1),
-                    predictorsLower= c(0),
-                    responseRange= c(0, 1),
-                    sigmaEstimationMethod = "none",
-                    seed=1,
-                    BasisFunParam=BasisFunParam,
-                    opts_BasisFun = list(nFreq=nFreq,
-                                         MatParam=Inf))
-       
-      }else{
-        mod <- slgp(t~x,
-                    data=current_samp2,
-                    method ="MAP",
-                    basisFunctionsUsed="RFF",
-                    interpolateBasisFun="WNN",
-                    hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
-                    predictorsUpper= c(1),
-                    predictorsLower= c(0),
-                    responseRange= c(0, 1),
-                    sigmaEstimationMethod = "none",
-                    seed=1,
-                    BasisFunParam=BasisFunParam,
-                    opts_BasisFun = list(nFreq=nFreq,
-                                         MatParam=1/2+modid-1))
-      }
-      predMod <- predictSLGP_newNode(SLGPmodel = mod, newNodes = dfGrid2)
-      predMod$ref <- refval
-      predMod$name <- paste0("Sample size: ", n)
-      save(predMod, mod, dH, file=title_file)
+  for(modid in seq(4)){
+    if(modid==1){
+      BasisFunParam <- SLGP1@BasisFunParam
     }
-    dfplot <- rbind(dfplot, predMod[, colnames(dfplot)])
-    current_samp2$name <- paste0("Sample size: ", n)
-    dfsamp <- rbind(dfsamp, current_samp2)
+    if(modid==2){
+      BasisFunParam <- SLGP2@BasisFunParam
+    }
+    if(modid==3){
+      BasisFunParam <- SLGP3@BasisFunParam
+      
+    }
+    if(modid==4){
+      BasisFunParam <- SLGP4@BasisFunParam
+    }
+    for(n in c(50, 500, 5000, 50000)){
+      title_file <- paste0("./res/SLGP_ref", ref, 
+                           "_mod", modid, "_freq", nFreq, 
+                           "_n", n, "_rep", rep, ".RData")
+      cat(title_file, "\n")
+      current_samp2 <- current_samp[1:n, ]
+      if(file.exists(title_file)){
+        load(file=title_file)
+      }else{
+        BasisFunParam$freq <- BasisFunParam$freq[c(1:nFreq, 500+(1:nFreq)), ]
+        BasisFunParam$coef <- rep(1/sqrt(nFreq), 2*nFreq)
+        BasisFunParam$offset <- BasisFunParam$offset[c(1:nFreq, 500+(1:nFreq))]
+        if(modid==4){
+          mod <- slgp(t~x,
+                      data=current_samp2,
+                      method ="MAP",
+                      basisFunctionsUsed="RFF",
+                      interpolateBasisFun="WNN",
+                      hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
+                      predictorsUpper= c(1),
+                      predictorsLower= c(0),
+                      responseRange= c(0, 1),
+                      sigmaEstimationMethod = "none",
+                      seed=1,
+                      BasisFunParam=BasisFunParam,
+                      opts_BasisFun = list(nFreq=nFreq,
+                                           MatParam=Inf))
+          
+        }else{
+          mod <- slgp(t~x,
+                      data=current_samp2,
+                      method ="MAP",
+                      basisFunctionsUsed="RFF",
+                      interpolateBasisFun="WNN",
+                      hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
+                      predictorsUpper= c(1),
+                      predictorsLower= c(0),
+                      responseRange= c(0, 1),
+                      sigmaEstimationMethod = "none",
+                      seed=1,
+                      BasisFunParam=BasisFunParam,
+                      opts_BasisFun = list(nFreq=nFreq,
+                                           MatParam=1/2+modid-1))
+        }
+        predMod <- predictSLGP_newNode(SLGPmodel = mod, newNodes = dfGrid2)
+        predMod$ref <- refval
+        predMod$name <- paste0("Sample size: ", n)
+        save(predMod, mod, dH, file=title_file)
+      }
+      dfplot <- rbind(dfplot, predMod[, colnames(dfplot)])
+      current_samp2$name <- paste0("Sample size: ", n)
+      dfsamp <- rbind(dfsamp, current_samp2)
+    }
+    dfplot$pdf_2 <- dfplot$pdf_1-refval
+    plot <- dfplot %>%   
+      dplyr::filter(x %in% seq(0, 1,, 26))%>%
+      # ggplot(aes(x=t, y=x, fill=pdf_1))+
+      # geom_raster()+
+      ggplot(aes(x=t, ymax=scale_factor*pdf_1+x, ymin=x, group=-x, fill=x))+
+      geom_ribbon(col="grey", alpha=0.9)+  # Add grey borders around each tile
+      scale_fill_viridis(option = "plasma",
+                         guide = guide_colorbar(nrow = 1,
+                                                title = "Indexing variable x",
+                                                barheight = unit(2, units = "mm"),
+                                                barwidth = unit(55, units = "mm"),
+                                                title.position = 'top',
+                                                label.position = "bottom",
+                                                title.hjust = 0.5))+
+      facet_grid(.~name)+
+      theme_bw()+
+      theme(legend.position = "bottom", axis.text.y = element_blank(),
+            axis.ticks.y = element_blank(), axis.line.y = element_blank())+
+      ylab("Rescaled probability density")+
+      xlab("Response variable t")+
+      labs(title="Learning with a well-specified SLGP: MAP estimate of the density field for varying sample sizes",
+           subtitle = paste0("Spatial regularity: ", 
+                             c("Lowest", "Low", "High", "Highest"))[ref])
+    ggsave(plot, file=paste0("./figures/ref", ref, 
+                             "mod", modid, "nFreq", nFreq, ".png"), width = 10, height=4.5)
+    
   }
-  dfplot$pdf_2 <- dfplot$pdf_1-refval
-  dfplot %>%   
-    ggplot(aes(x=t, y=x, fill=pdf_1))+
-    geom_raster()+
-    # ggplot(aes(x=t, ymax=scale_factor*pdf_1+x, ymin=x, group=-x, fill=x))+
-    # geom_ribbon(col="grey", alpha=0.9)+  # Add grey borders around each tile
-    scale_fill_viridis(option = "plasma",
-                       guide = guide_colorbar(nrow = 1,
-                                              title = "Indexing variable x",
-                                              barheight = unit(2, units = "mm"),
-                                              barwidth = unit(55, units = "mm"),
-                                              title.position = 'top',
-                                              label.position = "bottom",
-                                              title.hjust = 0.5))+
-    facet_grid(.~name)+
-    theme_bw()+
-    theme(legend.position = "bottom", axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(), axis.line.y = element_blank())+
-    ylab("Rescaled probability density")+
-    xlab("Response variable t")
 }
 ```
 
+```{r echo=FALSE, fig.width=10, fig.height=4.5}
+# Display each saved image
+for (ref in 1:4) {
+  knitr::include_graphics(paste0("./figures/ref", ref, "mod", ref, "nFreq", 500, ".png"))
+}
+```
 

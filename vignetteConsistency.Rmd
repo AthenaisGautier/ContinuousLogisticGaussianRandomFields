@@ -314,12 +314,12 @@ dfplot %>%
 
 ```{r sampleload, include=FALSE}
 listN <- c(   5, 10, 
-           25, 50, 100, 
-           250, 500, 1000, 
-           2500, 5000, 10000, 
-           25000, 50000, 100000, 
-           250000, 500000, 1000000, 
-           2500000, 5000000, 10000000)
+              25, 50, 100, 
+              250, 500, 1000, 
+              2500, 5000, 10000, 
+              25000, 50000, 100000, 
+              250000, 500000, 1000000, 
+              2500000, 5000000, 10000000)
 ```
 
 
@@ -380,7 +380,7 @@ for(rep in seq(nRep)){
                                "_n", n, "_rep", rep, ".RData")
           if(!file.exists(title_file)){
             cat(title_file, "\n")
-            ind <- c(1:n+(rep-1)*nmax)
+            ind <- c(1:n)
             if(ref==1){
               #exp
               current_samp <- data.frame(t=samp$t1[ind], x=samp$x[ind])
@@ -510,7 +510,7 @@ d_{IH}^2(f(x, \cdot) , f'(x, \cdot) ) = \frac{1}{2}\int_D \int_T \left( \sqrt{f(
 
 In the following Figure, we display the distribution of $d_{IH}$ between true and estimated fields in our experimental design.
 
-```{r finalplot, fig.fullwidth=TRUE, fig.height=5, fig.width=10, fig.align='center' ,fig.pos="H"}
+```{r finalplot, fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center' ,fig.pos="H"}
 load(file="compiledRes.RData")
 
 dfres %>%
@@ -531,8 +531,8 @@ dfres %>%
   scale_x_log10()+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    legend.position = "bottom",
-    legend.direction = "horizontal"
+        legend.position = "bottom",
+        legend.direction = "horizontal"
   ) +
   labs(
     y = "Integrated Squared Hellinger distance",
@@ -545,54 +545,97 @@ ggsave("consistency-distance.png", width = 10, height=10)
 ```
 
 ```{r eval=FALSE, include=FALSE}
-rep <- 1
+rep <- 2
 ref <- 1
 nFreq <- 500
 n <- 50
+
+load(file=paste0("samples/SLGPsSamp", rep, ".Rdata"))
+
 for(ref in seq(4)){
   dfplot <- dfGrid2
-  ind <- c(1:nmax+(rep-1)*nmax)
   dfsamp <- data.frame()
-  
   if(ref==1){
-    dfplot$pdf_1 <- pred1$pdf_1
+    current_samp <- data.frame(t=samp$t1, x=samp$x)
     refval <- pred1$pdf_1
-    current_samp <- data.frame(t=samp$t1[ind], x=samp$x[ind])
+    BasisFunParam <- SLGP1@BasisFunParam
   }
   if(ref==2){
-    dfplot$pdf_1 <- pred2$pdf_1
+    current_samp <- data.frame(t=samp$t2, x=samp$x) 
     refval <- pred2$pdf_1
-    current_samp <- data.frame(t=samp$t2[ind], x=samp$x[ind])
+    BasisFunParam <- SLGP2@BasisFunParam
   }
   if(ref==3){
-    dfplot$pdf_1 <-refval <- pred3$pdf_1
-    current_samp <- data.frame(t=samp$t3[ind], x=samp$x[ind])
+    current_samp <- data.frame(t=samp$t3, x=samp$x) 
+    refval <- pred3$pdf_1
+    BasisFunParam <- SLGP3@BasisFunParam
+    
   }
   if(ref==4){
-    dfplot$pdf_1 <-refval <- pred4$pdf_1
-    current_samp <- data.frame(t=samp$t4[ind], x=samp$x[ind])
+    current_samp <- data.frame(t=samp$t4, x=samp$x) 
+    refval <- pred4$pdf_1
+    BasisFunParam <- SLGP4@BasisFunParam
   }
   dfplot$name <- "Reference"
+  dfplot$pdf_1 <- refval
   modid <- ref
-  for(n in c(50, 500, 50000)){
+  for(n in c(50, 500, 5000, 50000)){
     title_file <- paste0("./res/SLGP_ref", ref, 
                          "_mod", modid, "_freq", nFreq, 
                          "_n", n, "_rep", rep, ".RData")
+    cat(title_file, "\n")
+    
     if(file.exists(title_file)){
-      cat(title_file, "\n")
-      
       load(file=title_file)
-      predMod <- predictSLGP_newNode(SLGPmodel = mod, newNodes = dfGrid2)
-      predMod$name <- paste0("Sample size: ", n)
-      dfplot <- rbind(dfplot, predMod)
+    }else{
       current_samp2 <- current_samp[1:n, ]
-      current_samp2$name <- paste0("Sample size: ", n)
-      dfsamp <- rbind(dfsamp, current_samp2)
+      BasisFunParam$freq <- BasisFunParam$freq[c(1:nFreq, 500+(1:nFreq)), ]
+      BasisFunParam$coef <- rep(1/sqrt(nFreq), 2*nFreq)
+      BasisFunParam$offset <- BasisFunParam$offset[c(1:nFreq, 500+(1:nFreq))]
+      if(modid==4){
+        mod <- slgp(t~x,
+                    data=current_samp2,
+                    method ="MAP",
+                    basisFunctionsUsed="RFF",
+                    interpolateBasisFun="WNN",
+                    hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
+                    predictorsUpper= c(1),
+                    predictorsLower= c(0),
+                    responseRange= c(0, 1),
+                    sigmaEstimationMethod = "none",
+                    seed=1,
+                    BasisFunParam=BasisFunParam,
+                    opts_BasisFun = list(nFreq=nFreq,
+                                         MatParam=Inf))
+       
+      }else{
+        mod <- slgp(t~x,
+                    data=current_samp2,
+                    method ="MAP",
+                    basisFunctionsUsed="RFF",
+                    interpolateBasisFun="WNN",
+                    hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
+                    predictorsUpper= c(1),
+                    predictorsLower= c(0),
+                    responseRange= c(0, 1),
+                    sigmaEstimationMethod = "none",
+                    seed=1,
+                    BasisFunParam=BasisFunParam,
+                    opts_BasisFun = list(nFreq=nFreq,
+                                         MatParam=1/2+modid-1))
+      }
+      predMod <- predictSLGP_newNode(SLGPmodel = mod, newNodes = dfGrid2)
+      predMod$ref <- refval
+      predMod$name <- paste0("Sample size: ", n)
+      save(predMod, mod, dH, file=title_file)
     }
+    dfplot <- rbind(dfplot, predMod[, colnames(dfplot)])
+    current_samp2$name <- paste0("Sample size: ", n)
+    dfsamp <- rbind(dfsamp, current_samp2)
   }
   dfplot$pdf_2 <- dfplot$pdf_1-refval
   dfplot %>%   
-    ggplot(aes(x=t, y=x, fill=pdf_2))+
+    ggplot(aes(x=t, y=x, fill=pdf_1))+
     geom_raster()+
     # ggplot(aes(x=t, ymax=scale_factor*pdf_1+x, ymin=x, group=-x, fill=x))+
     # geom_ribbon(col="grey", alpha=0.9)+  # Add grey borders around each tile

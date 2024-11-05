@@ -559,7 +559,6 @@ n <- 50
 load(file=paste0("samples/SLGPsSamp", rep, ".Rdata"))
 
 for(ref in seq(4)){
-  dfplot <- dfGrid2
   dfsamp <- data.frame()
   if(ref==1){
     current_samp <- data.frame(t=samp$t1, x=samp$x)
@@ -581,6 +580,7 @@ for(ref in seq(4)){
   dfplot$name <- "Reference"
   dfplot$pdf_1 <- refval
   for(modid in seq(4)){
+    dfplot <- dfGrid2
     if(modid==1){
       BasisFunParam <- SLGP1@BasisFunParam
     }
@@ -677,11 +677,14 @@ for(ref in seq(4)){
   }
 }
 ```
+# Well-specified case
 
-```{r echo=FALSE, fig.width=10, fig.height=4.5}
-# Display each saved image
-for (ref in 1:4) {
-  knitr::include_graphics(paste0("./figures/ref", ref, "mod", ref, "nFreq", 500, ".png"))
-}
-```
+![Spatial regularity: lowest](./figures/ref1mod1nFreq500.png){ width=100% }
+![Spatial regularity: lowest](./figures/ref2mod2nFreq500.png){ width=100% }
+![Spatial regularity: lowest](./figures/ref3mod3nFreq500.png){ width=100% }
+![Spatial regularity: lowest](./figures/ref4mod4nFreq500.png){ width=100% }
+# Ill-specified case
+
+![Spatial regularity: lowest](./figures/ref1mod2nFreq500.png){ width=100% }
+
 

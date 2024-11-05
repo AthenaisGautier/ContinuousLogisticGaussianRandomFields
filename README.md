@@ -43,6 +43,28 @@ $$
 and assume that $k$ satisfies the condition above.
 
 
+Then, for all $\gamma>0$ and $0<\delta < \gamma\alpha_1/2$ (for the first two Equations, resp. $0<\delta < \gamma\alpha_1$ for the last two Equations), there exists $K_{\gamma, \delta}>0$ such that for all $\mathbf{x}, \mathbf{x}' \in D^2$:  
+
+$$ \mathbb{E} \left[ d_{H}({Y}_{\mathbf{x}, \cdot}, {Y}_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 /2 -\delta}_\infty$$
+
+$$ \mathbb{E} \left[ V({Y}_{\mathbf{x}, \cdot}, {Y}_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1/2 -\delta}_\infty$$
+
+$$ \mathbb{E} \left[ KL({Y}_{\mathbf{x}, \cdot}, {Y}_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 -\delta}_\infty$$
+
+$$ \mathbb{E} \left[ d_{TV}({Y}_{\mathbf{x}, \cdot}, {Y}_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 -\delta}_\infty $$
+
+
+Where for two pdfs $f_1$, $f_2$ on $\mathcal{T}$:
+
+* $d_{H}$ denotes the Hellinger distance: $d_H(f_1, f_2) := \sqrt{\frac{1}{2}\int_\mathcal{T} \left( \sqrt{f_1(u)} - \sqrt{f_2(u)} \right)^2 \,du}$
+
+* $KL$ denotes the Kullback-Liebler divergence: $KL(f_1, f_2) := \int_\mathcal{T} f_1(u) \log\left( f_1(u) / f_2(u)\right) \,du$
+
+* $V$ denotes a squared log-ratio dissimilarity: $V(f_1, f_2) := \int_\mathcal{T} \left( \log \frac{ f_1(u)}{f_2(u)}\right)^2 \,du$
+
+* $d_{TV}$ denotes the Total Variation distance: $d_{TV}(f_1, f_2) := \int_\mathcal{T} \left\vert f_1(u) - f_2(u) \right\vert \,du$
+
+
 ## Posterior consistency of SLGP-based density estimation
 
 [The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteConsistency.html)

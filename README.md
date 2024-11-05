@@ -45,13 +45,17 @@ and assume that $k$ satisfies the condition above.
 
 Then, for all $\gamma>0$ and $0<\delta < \gamma\alpha_1/2$ (for the first two Equations, resp. $0<\delta < \gamma\alpha_1$ for the last two Equations), there exists $K_{\gamma, \delta}>0$ such that for all $\mathbf{x}, \mathbf{x}' \in D^2$:  
 
-$$ \mathbb{E} \left[ d_{H}({Y}_{\mathbf{x}, \cdot}, {Y}_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 /2 -\delta}_\infty$$
+$$ \mathbb{E} \left[ d_{H}(Y_{\mathbf{x}, \cdot}, Y_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 /2 -\delta}_\infty
+$$
 
-$$ \mathbb{E} \left[ V({Y}_{\mathbf{x}, \cdot}, {Y}_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1/2 -\delta}_\infty$$
+$$ \mathbb{E} \left[ V(Y_{\mathbf{x}, \cdot}, Y_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1/2 -\delta}_\infty
+$$
 
-$$ \mathbb{E} \left[ KL({Y}_{\mathbf{x}, \cdot}, {Y}_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 -\delta}_\infty$$
+$$ \mathbb{E} \left[ KL(Y_{\mathbf{x}, \cdot}, Y_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 -\delta}_\infty
+$$
 
-$$ \mathbb{E} \left[ d_{TV}({Y}_{\mathbf{x}, \cdot}, {Y}_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 -\delta}_\infty $$
+$$ \mathbb{E} \left[ d_{TV}(Y_{\mathbf{x}, \cdot}, Y_{\mathbf{x}', \cdot})^\gamma \right] \leq K_{\gamma, \delta}  \Vert \mathbf{x} - \mathbf{x}' \Vert^{\gamma \alpha_1 -\delta}_\infty 
+$$
 
 
 Where for two pdfs $f_1$, $f_2$ on $\mathcal{T}$:
@@ -63,6 +67,8 @@ Where for two pdfs $f_1$, $f_2$ on $\mathcal{T}$:
 * $V$ denotes a squared log-ratio dissimilarity: $V(f_1, f_2) := \int_\mathcal{T} \left( \log \frac{ f_1(u)}{f_2(u)}\right)^2 \,du$
 
 * $d_{TV}$ denotes the Total Variation distance: $d_{TV}(f_1, f_2) := \int_\mathcal{T} \left\vert f_1(u) - f_2(u) \right\vert \,du$
+
+![Alt Text]([https://github.com/your-username/your-repo-name/blob/main/path/to/your-image.png](https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ratesHolder.png))
 
 
 ## Posterior consistency of SLGP-based density estimation

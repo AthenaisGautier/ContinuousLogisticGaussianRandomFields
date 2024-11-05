@@ -68,7 +68,8 @@ Where for two pdfs $f_1$, $f_2$ on $\mathcal{T}$:
 
 * $d_{TV}$ denotes the Total Variation distance: $d_{TV}(f_1, f_2) := \int_\mathcal{T} \left\vert f_1(u) - f_2(u) \right\vert \,du$
 
-![Alt Text]([https://github.com/your-username/your-repo-name/blob/main/path/to/your-image.png](https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ratesHolder.png))
+<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ratesHolder.png" alt="Illustration of the rates" width="700"/>
+
 
 
 ## Posterior consistency of SLGP-based density estimation

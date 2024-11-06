@@ -217,6 +217,10 @@ dfplot %>%
         axis.ticks.y = element_blank(), axis.line.y = element_blank())+
   ylab("Rescaled probability density")+
   xlab("Response variable t")
+
+ggsave(file=paste0("./figures/ref_fields2.png"), width = 8, height=3.5, scale=0.95)
+ggsave(file=paste0("./figures/ref_fields2.pdf"), width = 8, height=3.5, scale=0.95)
+
 ```
 
 We draw samples from each of these four reference probability density fields at various values of the indexing variable $x$. These samples will be used to perform the inference, enabling us to assess how well the SLGP-based models can recover the underlying distributions. For each field, we generate 25 samples, with each sample consisting of up to 250000 data points.
@@ -496,7 +500,7 @@ dfres$ref <- factor(dfres$ref,
                     levels=paste0("Spatial regularity:\n", 
                                   c("Lowest", "Low", "High", "Highest")))
 dfres$mod <- factor(dfres$mod,
-                    levels=paste0("Model: \n", 
+                    levels=paste0("SLGP model: \n", 
                                   c("Exponential", "Matérn 3/2", 
                                     "Matérn 5/2", "Gaussian")))
 save(dfres, file="compiledRes.RData")
@@ -513,6 +517,11 @@ In the following Figure, we display the distribution of $d_{IH}$ between true an
 ```{r finalplot, fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center' ,fig.pos="H"}
 load(file="compiledRes.RData")
 
+levels(dfres$ref) <- paste0("Spatial regularity of the ref.:\n", 
+                            c("Lowest", "Low", "High", "Highest"))
+levels(dfres$mod) <- paste0("SLGP model with a: \n", 
+                            c("Exponential", "Matérn 3/2", 
+                              "Matérn 5/2", "Gaussian"), " kernel")
 dfres %>%
   filter(!is.na(dH))%>%
   group_by(nFreq, mod, ref, n)%>%
@@ -523,8 +532,8 @@ dfres %>%
             q90=quantile(dH, probs=0.90),
             .groups="keep")%>%
   ggplot()+
-  geom_line(mapping=aes(x=n, y=q50, col=as.factor(nFreq)))+
-  geom_ribbon(mapping=aes(x=n, ymin=q10, ymax=q90, col=as.factor(nFreq), fill=as.factor(nFreq)),
+  geom_line(mapping=aes(x=n, y=q50, col=as.factor(2*nFreq)))+
+  geom_ribbon(mapping=aes(x=n, ymin=q10, ymax=q90, col=as.factor(2*nFreq), fill=as.factor(2*nFreq)),
               alpha=0.1, lty=2)+
   geom_hline(yintercept = 0, col="grey")+
   facet_grid(mod~ref)+
@@ -537,12 +546,45 @@ dfres %>%
   labs(
     y = "Integrated Squared Hellinger distance",
     x = "Sample size",
-    col = "Number of frequencies",
-    fill = "Number of frequencies"
+    col = "Number of basis functions",
+    fill = "Number of basis functions"
   )
 
 ggsave("consistency-distance.png", width = 10, height=10)
 ```
+```{r include=FALSE, eval=FALSE}
+dfres %>%
+  filter(!is.na(dH))%>%
+  filter(as.numeric(mod) == as.numeric(ref))%>%
+  group_by(nFreq, mod, ref, n)%>%
+  summarise(q10=quantile(dH, probs=0.10),
+            q25=quantile(dH, probs=0.25),
+            q50=quantile(dH, probs=0.50),
+            q75=quantile(dH, probs=0.75),
+            q90=quantile(dH, probs=0.90),
+            .groups="keep")%>%
+  ggplot()+
+  geom_line(mapping=aes(x=n, y=q50, col=as.factor(2*nFreq)))+
+  geom_ribbon(mapping=aes(x=n, ymin=q10, ymax=q90, col=as.factor(2*nFreq), fill=as.factor(2*nFreq)),
+              alpha=0.1, lty=2)+
+  geom_hline(yintercept = 0, col="grey")+
+  facet_grid(.~ref)+
+  scale_x_log10()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "bottom",
+        legend.direction = "horizontal"
+  ) +
+  labs(
+    y = "Integrated Squared Hellinger distance",
+    x = "Sample size",
+    col = "Number of basis functions",
+    fill = "Number of basis functions"
+  )
+
+ggsave("./figures/consistency-distance2.pdf", width = 7, height=3.5)
+```
+
 
 We observe that the quality of the SLGP model’s fit varies across different parameterizations and levels of spatial regularity. In general, on this reduced benchmark, specifying a SLGP that is smoother than the reference field yields better estimation performance than the opposite. Additionally, as expected, increasing the number of basis functions enhances the model’s flexibility, enabling it to better capture fine-scale features.
 
@@ -562,25 +604,25 @@ for(ref in seq(4)){
   dfsamp <- data.frame()
   if(ref==1){
     current_samp <- data.frame(t=samp$t1, x=samp$x)
-    refval <- pred1$pdf_1
+    refval <- as.numeric(pred1$pdf_1)
   }
   if(ref==2){
     current_samp <- data.frame(t=samp$t2, x=samp$x) 
-    refval <- pred2$pdf_1
+    refval <- as.numeric(pred2$pdf_1)
   }
   if(ref==3){
     current_samp <- data.frame(t=samp$t3, x=samp$x) 
-    refval <- pred3$pdf_1
+    refval <- as.numeric(pred3$pdf_1)
     
   }
   if(ref==4){
     current_samp <- data.frame(t=samp$t4, x=samp$x) 
-    refval <- pred4$pdf_1
+    refval <- as.numeric(pred4$pdf_1)
   }
-  dfplot$name <- "Reference"
-  dfplot$pdf_1 <- refval
   for(modid in seq(4)){
     dfplot <- dfGrid2
+    dfplot$name <- "Reference"
+    dfplot$pdf_1 <- refval
     if(modid==1){
       BasisFunParam <- SLGP1@BasisFunParam
     }
@@ -594,7 +636,7 @@ for(ref in seq(4)){
     if(modid==4){
       BasisFunParam <- SLGP4@BasisFunParam
     }
-    for(n in c(50, 500, 5000, 50000)){
+    for(n in c(50, 500, 5000)){
       title_file <- paste0("./res/SLGP_ref", ref, 
                            "_mod", modid, "_freq", nFreq, 
                            "_n", n, "_rep", rep, ".RData")
@@ -644,10 +686,21 @@ for(ref in seq(4)){
         save(predMod, mod, dH, file=title_file)
       }
       dfplot <- rbind(dfplot, predMod[, colnames(dfplot)])
-      current_samp2$name <- paste0("Sample size: ", n)
+      current_samp2$name <- paste0("Sample size: ", n,"\n")
       dfsamp <- rbind(dfsamp, current_samp2)
     }
     dfplot$pdf_2 <- dfplot$pdf_1-refval
+    if(modid==ref){
+      title <- "Learning with a well-specified SLGP: MAP estimate of the density field for varying sample sizes"
+      subtitle = paste0("Spatial regularity of the reference field and of the SLGP: ", 
+                        c("Lowest", "Low", "High", "Highest"))[ref]
+    }else{
+      title <- "Learning with an ill-specified SLGP: MAP estimate of the density field for varying sample sizes"
+      subtitle = paste0("Spatial regularity of the reference field: ", 
+                        c("Lowest", "Low", "High", "Highest")[ref],
+                        "; of the SLGP:", c("Lowest", "Low", "High", "Highest")[modid])
+      
+    }
     plot <- dfplot %>%   
       dplyr::filter(x %in% seq(0, 1,, 26))%>%
       # ggplot(aes(x=t, y=x, fill=pdf_1))+
@@ -667,24 +720,39 @@ for(ref in seq(4)){
       theme(legend.position = "bottom", axis.text.y = element_blank(),
             axis.ticks.y = element_blank(), axis.line.y = element_blank())+
       ylab("Rescaled probability density")+
-      xlab("Response variable t")+
-      labs(title="Learning with a well-specified SLGP: MAP estimate of the density field for varying sample sizes",
-           subtitle = paste0("Spatial regularity: ", 
-                             c("Lowest", "Low", "High", "Highest"))[ref])
+      xlab("Response variable t")
+      # labs(title=title,
+      #      subtitle = subtitle)
     ggsave(plot, file=paste0("./figures/ref", ref, 
-                             "mod", modid, "nFreq", nFreq, ".png"), width = 10, height=4.5)
+                             "mod", modid, "nFreq", nFreq, ".png"), 
+           width = 8, height=3.5, scale=0.95)
+    ggsave(plot, file=paste0("./figures/ref", ref, 
+                             "mod", modid, "nFreq", nFreq, ".pdf"), 
+           width = 8, height=3.5, scale=0.95)
     
   }
 }
 ```
-# Well-specified case
 
-![Spatial regularity: lowest](./figures/ref1mod1nFreq500.png){ width=100% }
-![Spatial regularity: lowest](./figures/ref2mod2nFreq500.png){ width=100% }
-![Spatial regularity: lowest](./figures/ref3mod3nFreq500.png){ width=100% }
-![Spatial regularity: lowest](./figures/ref4mod4nFreq500.png){ width=100% }
+# Well-specified cases
+
+![Estimation in the setting with the lowest spatial regularity](./figures/ref1mod1nFreq500.png){ width=100% }
+
+![Estimation in the setting with low spatial regularity](./figures/ref2mod2nFreq500.png){ width=100% }
+
+![Estimation in the setting with high spatial regularity](./figures/ref3mod3nFreq500.png){ width=100% }
+
+
+![Estimation in the setting with the highest spatial regularity](./figures/ref4mod4nFreq500.png){ width=100% }
+
 # Ill-specified case
 
-![Spatial regularity: lowest](./figures/ref1mod2nFreq500.png){ width=100% }
+
+
+![Estimation in the setting where the reference field has the lowest spatial regularity, but the SLGP is based on a Gaussian kernel (smoothest setting considered).](./figures/ref1mod4nFreq500.png){ width=100% }
+
+
+
+![Estimation in the setting where the reference field has the highest spatial regularity, but the SLGP is based on an exponential kernel (least smooth setting considered).](./figures/ref4mod1nFreq500.png){ width=100% }
 
 

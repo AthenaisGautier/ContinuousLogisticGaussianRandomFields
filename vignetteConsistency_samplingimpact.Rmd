@@ -1,0 +1,324 @@
+---
+title: "Posterior consistency in SLGP estimation - sampling approximations influence"
+author: "Athénaïs Gautier"
+date: "Last revised - October 2024"
+output:
+  html_document:
+  #bookdown::pdf_document2 :
+  #  keep_tex: FALSE
+  #  toc: FALSE
+  #  number_sections: true
+    citation_package: natbib
+#bibliography: bibliography.bib
+header-includes:
+ \usepackage{float}
+ \usepackage{tikz}
+ \usepackage{xcolor}
+ \usepackage{amsmath, amsfonts, amsthm}
+ \floatplacement{figure}{H}
+ \usepackage{fvextra}
+ \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+
+---
+
+\newcommand{\xX}{\mathbf{x}}
+\newcommand{\xI}{\mathcal{T}}
+\newcommand{\xR}{\mathbb{R}}
+\newcommand{\dimI}{d_\xI}
+\newcommand{\dimD}{d_D}
+\newcommand{\dxx}{d_{\xX, \xX'}}
+\newcommand{\kincrement}{k_{\text{inc}}}
+\newcommand{\mincrement}{m_{\text{inc}}}
+\newcommand{\xM}{M(\xX, \xX')}
+\newcommand{\diam}{D_{\xX, \xX'}(\xI)}
+\newcommand{\xY}{\Vert \xX - \xX' \Vert^{\alpha_1 /2}}
+\newcommand{\sigFieldM}{\mathcal{B}(\xI)}
+
+\newcommand{\proc}[3]{
+\ifstrempty{#3}%
+{%
+\ifstrempty{#2}%
+{%
+#1
+}{%
+#1_{#2}
+}%
+}{%
+(#1_{#2})_{#3}
+}%
+}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(viridis)
+```
+
+
+# Introduction
+
+This document is about exploring the impact of our approximate sampling strategy for posterior consistency of Spatial Logistic Gaussian Processes (SLGPs) in estimating response distributions given predictor values. 
+
+It comes as a complement to the main document titled "Posterior consistency in SLGP estimation".
+
+```{r modelsload, include=FALSE}
+library(SLGP)
+load(file="SLGPsRef.Rdata")
+```
+
+We display the corresponding probability density functions (PDFs) for a few instances of the underlying indexing variable $x$. 
+
+```{r reffigure, fig.cap = "Probability density fields (displayed for a few indices x) with different spatial regularity", fig.fullwidth=TRUE, fig.height=5, fig.width=10, fig.align='center' ,fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+set.seed(123)
+epsilon <- rnorm(SLGP1@p, sd=sqrt(SLGP1@hyperparams$sigma2))
+SLGP1@coefficients <-
+  SLGP2@coefficients <-
+  SLGP3@coefficients <-
+  SLGP4@coefficients <- as.matrix(t(epsilon))
+
+dfGrid2 <- data.frame(expand.grid(seq(0, 1,, 1001), seq(0, 1,, 101)))
+colnames(dfGrid2) <- c("t", "x")
+
+pred1 <- predictSLGP_newNode(SLGPmodel = SLGP1,
+                             newNodes = dfGrid2)
+pred1$kernel <- "Lowest"
+
+pred2 <- predictSLGP_newNode(SLGPmodel = SLGP2,
+                             newNodes = dfGrid2)
+pred2$kernel <- "Low"
+
+pred3 <- predictSLGP_newNode(SLGPmodel = SLGP3,
+                             newNodes = dfGrid2)
+pred3$kernel <- "High"
+
+pred4 <- predictSLGP_newNode(SLGPmodel = SLGP4,
+                             newNodes = dfGrid2)
+pred4$kernel <- "Highest"
+
+scale_factor <- 0.05
+dfplot <- rbind(pred1, pred2, pred3, pred4)
+dfplot$kernel <- factor(paste0("Spatial regularity:\n", dfplot$kernel),
+                        levels=paste0("Spatial regularity:\n", 
+                                      c("Lowest", "Low", "High", "Highest")))
+
+dfplot %>%
+  dplyr::filter(x %in% seq(0, 1,, 26))%>%
+  ggplot(aes(x=t, ymax=scale_factor*pdf_1+x, ymin=x, group=-x, fill=x))+
+  geom_ribbon(col="grey", alpha=0.9)+  # Add grey borders around each tile
+  scale_fill_viridis(option = "plasma",
+                     guide = guide_colorbar(nrow = 1,
+                                            title = "Indexing variable x",
+                                            barheight = unit(2, units = "mm"),
+                                            barwidth = unit(55, units = "mm"),
+                                            title.position = 'top',
+                                            label.position = "bottom",
+                                            title.hjust = 0.5))+
+  facet_grid(.~kernel)+
+  theme_bw()+
+  theme(legend.position = "bottom", axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(), axis.line.y = element_blank())+
+  ylab("Rescaled probability density")+
+  xlab("Response variable t")
+```
+
+We draw samples from each of these four reference probability density fields at various values of the indexing variable $x$. These samples will be used to perform the inference, enabling us to assess how well the SLGP-based models can recover the underlying distributions. For each field, we generate 5 samples, with each sample consisting of up to 100000 data points.
+
+```{r pardefine, include=FALSE}
+nmax <- 1e5
+nRep <- 5
+```
+
+# Case 1: sampling x that are not truly uniform but on a coarse grid
+
+```{r samplegeneration1, eval=FALSE}
+nmax <- 1e5
+nRep <- 1
+i<- 1
+for(i in seq(nRep)){
+  for(nDiscret in c(51, 501)){
+    cat(i, ".1\n")
+    set.seed(i)
+    x_candidates <- sample(seq(0, 1,, 51), nmax, replace=TRUE)
+    set.seed(i)
+    t <- as.data.frame(table(x_candidates))
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                           n=t$Freq, 
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp<- data.frame(x=sampTemp$x,
+                      t1 = sampTemp$t)
+    set.seed(i)
+    cat(i, ".2\n")
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                           n=t$Freq, 
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t2<- sampTemp$t
+    set.seed(i)
+    cat(i, ".3\n")
+    
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                           n=t$Freq, 
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t3<- sampTemp$t
+    set.seed(i)
+    cat(i, ".4\n")
+    
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=x_candidates), 
+                           n=1,
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t4<- sampTemp$t
+    set.seed(i)
+    shuffle <- sample(seq(nrow(samp)))
+    samp <- samp[shuffle, ]
+    save(samp, file=paste0("./samplingstudy/SLGPsSamp", i, 
+                           "discret", nDiscret, 
+                           "case1.Rdata"))
+  }
+}
+rm(sampTemp)
+gc()
+```
+
+# Case 2: sampling x that are not truly uniform but on a fine grid
+
+```{r samplegeneration2, eval=FALSE}
+i<- 1
+for(i in seq(nRep)){
+  for(nDiscret in seq(51, 501)){
+    cat(i, ".1\n")
+    set.seed(i)
+    x_candidates <- sample(seq(0, 1,, 501), nmax, replace=TRUE)
+    set.seed(i)
+    t <- as.data.frame(table(x_candidates))
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                           n=t$Freq, 
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp<- data.frame(x=sampTemp$x,
+                      t1 = sampTemp$t)
+    set.seed(i)
+    cat(i, ".2\n")
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                           n=t$Freq, 
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t2<- sampTemp$t
+    set.seed(i)
+    cat(i, ".3\n")
+    
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                           n=t$Freq, 
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t3<- sampTemp$t
+    set.seed(i)
+    cat(i, ".4\n")
+    
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                           n=t$Freq, 
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t4<- sampTemp$t
+    set.seed(i)
+    shuffle <- sample(seq(nrow(samp)))
+    samp <- samp[shuffle, ]
+    save(samp, file=paste0("./samplingstudy/SLGPsSamp", i, 
+                           "discret", nDiscret, 
+                           "case2.Rdata"))
+  }
+}
+rm(sampTemp)
+gc()
+```
+
+
+# Case 3: sampling x that are truly uniform
+
+```{r samplegeneration3, eval=FALSE}
+nmax <- 1e5
+i<- 1
+for(i in seq(nRep)){
+  for(nDiscret in seq(51, 501)){
+    cat(i, ".1\n")
+    set.seed(i)
+    x_candidates <- runif(nmax)
+    set.seed(i)
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=x_candidates), 
+                           n=1, 
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp<- data.frame(x=sampTemp$x,
+                      t1 = sampTemp$t)
+    set.seed(i)
+    cat(i, ".2\n")
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=x_candidates), 
+                           n=1,
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t2<- sampTemp$t
+    set.seed(i)
+    cat(i, ".3\n")
+    
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=x_candidates), 
+                           n=1,
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t3<- sampTemp$t
+    set.seed(i)
+    cat(i, ".4\n")
+    
+    sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
+                           interpolateBasisFun="WNN",
+                           newX=data.frame(x=x_candidates), 
+                           n=1,
+                           nIntegral=101,
+                           nDiscret=nDiscret)
+    samp$t4<- sampTemp$t
+    set.seed(i)
+    shuffle <- sample(seq(nrow(samp)))
+    samp <- samp[shuffle, ]
+    save(samp, file=paste0("./samplingstudy/SLGPsSamp", i, 
+                           "discret", nDiscret, 
+                           "case3.Rdata"))
+  }
+}
+
+rm(sampTemp)
+gc()
+
+
+```
+
+```{r sampleload, include=FALSE}
+listN <- c(   5, 10, 
+              25, 50, 100, 
+              250, 500, 1000, 
+              2500, 5000, 10000, 
+              25000, 50000, 100000)
+```

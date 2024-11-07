@@ -1,5 +1,5 @@
 ---
-title: "Posterior consistency in SLGP estimation - sampling approximations influence"
+title: "Posterior consistency in SLGP estimation: sampling approximations influence"
 author: "Athénaïs Gautier"
 date: "Last revised - October 2024"
 output:

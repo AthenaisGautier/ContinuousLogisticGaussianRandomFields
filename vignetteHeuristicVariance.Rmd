@@ -1,0 +1,187 @@
+---
+title: "Brief visualisation of the variance heuristic"
+author: "Athénaïs Gautier"
+date: "Last revised - October 2024"
+output:
+  html_document:
+  #bookdown::pdf_document2 :
+  #  keep_tex: FALSE
+  #  toc: FALSE
+  #  number_sections: true
+    citation_package: natbib
+#bibliography: bibliography.bib
+header-includes:
+ \usepackage{float}
+ \usepackage{tikz}
+ \usepackage{xcolor}
+ \usepackage{amsmath, amsfonts, amsthm}
+ \floatplacement{figure}{H}
+ \usepackage{fvextra}
+ \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+
+---
+
+\newcommand{\xX}{\mathbf{x}}
+\newcommand{\xI}{\mathcal{T}}
+\newcommand{\xR}{\mathbb{R}}
+\newcommand{\dimI}{d_\xI}
+\newcommand{\dimD}{d_D}
+\newcommand{\dxx}{d_{\xX, \xX'}}
+\newcommand{\kincrement}{k_{\text{inc}}}
+\newcommand{\mincrement}{m_{\text{inc}}}
+\newcommand{\xM}{M(\xX, \xX')}
+\newcommand{\diam}{D_{\xX, \xX'}(\xI)}
+\newcommand{\xY}{\Vert \xX - \xX' \Vert^{\alpha_1 /2}}
+\newcommand{\sigFieldM}{\mathcal{B}(\xI)}
+
+\newcommand{\proc}[3]{
+\ifstrempty{#3}%
+{%
+\ifstrempty{#2}%
+{%
+#1
+}{%
+#1_{#2}
+}%
+}{%
+(#1_{#2})_{#3}
+}%
+}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(viridis)
+```
+
+# SLGP modelling
+
+The SLGP model, related to \citet{tokdar_bayesian_2010} and being at the center of the present contribution following up on [TODO: citation]\citep{gautier_goal-oriented_2021, gautier_continuous_2021, gautier_modelling_2023}, is itself a spatial generalization of the Logistic Gaussian Process models, which were established and studied in [TODO: citation]\citep{lenk_logistic_1988, lenk_towards_1991, leonard_density_1978}.
+
+The SLGP for spatially dependent density estimation builds upon a well-behaved GP $(Z_{\xX, t})_{(\xX, t) \in [0, 1]^2}$ and studies the stochastic process obtained from applying the spatial logistic density transformation to $Z$ as follows:
+
+\[
+\label{eq:informalSLGP}
+\Psi[Z](\xX, t)= \dfrac{e^{\sigma Z_{\xX, t}}}{\int_{[0, 1]} e^{\sigma  Z_{\xX, u}} \,d\lambda(u) } \text{ for all } (\xX, t) \in [0, 1]^2
+\]
+At any fixed $\xX$, $\Psi[Z](\xX, \cdot)$ hence returns a random function that is, by construction, positive and integrates to one, therefore, a SLGP can be (informally) seen as a field of random pdfs. Also note that $\sigma^2$ is a variance parameter that needs to be selected.
+
+# Selecting the variance
+
+To select $\sigma^2$, we use a heustic ensuring that:
+$$\mathbb{E}[\max_{\xX \in D} \vert \max_{t \in \xI} \sigma Z_{\xX, t} - \min_{t \in \xI} \sigma Z_{\xX, t}\vert ] \leq 5$$
+
+This heuristic controls the range of values that the SLGP can take, typically restricting it to $[0, e^5\approx 148]$.
+
+# Qualitative Analysis of the SLGP Range
+
+To justify this choice, we offer a qualitative analysis by drawing GP realizations and observing the corresponding SLGPs with varying values of the GP’s range defined as $\max_{\xX \in D} \vert \max_{t \in \xI} Z_{\xX, t} - \min_{t \in \xI} Z_{\xX, t}\vert$.  We illustrate this with several simulations.
+
+```{r}
+library(MASS)
+
+# Define a 2D grid
+x <- seq(0, 1, length.out = 51)  
+t <- seq(0, 1, length.out = 51) 
+grid <- expand.grid(x = x, t = t)
+
+# Exponential kernel covariance function
+exp_cov <- function(x1, x2, var = 1, scale = 0.1) {
+  dist_matrix <- as.matrix(dist(rbind(x1, x2), method = "euclidean"))[1:nrow(x1), (nrow(x1) + 1):(nrow(x1) + nrow(x2))]
+  var * exp(-dist_matrix / scale)
+}
+
+# Gaussian kernel covariance function
+gauss_cov <- function(x1, x2, var = 1, scale = 0.1) {
+  dist_matrix <- as.matrix(dist(rbind(x1, x2), method = "euclidean"))[1:nrow(x1), (nrow(x1) + 1):(nrow(x1) + nrow(x2))]
+  var * exp(-dist_matrix^2 / (2 * scale^2))
+}
+
+# Compute covariance matrices
+cov_matrix_exp <- exp_cov(grid, grid)
+cov_matrix_gauss <- gauss_cov(grid, grid)
+
+set.seed(0)
+
+# Draw samples from multivariate normal distribution
+field_exp <- mvrnorm(n = 2, mu = rep(0, nrow(grid)), Sigma = cov_matrix_exp)
+field_gauss <- mvrnorm(n = 2, mu = rep(0, nrow(grid)), Sigma = cov_matrix_gauss)
+
+dfplot <- data.frame(rbind(grid, grid, grid, grid))
+dfplot$value <- c(field_exp[1, ], field_exp[2, ],
+                  field_gauss[1, ], field_gauss[2, ])
+dfplot$name <- c(sapply(seq(4), function(x){rep(paste0("GP", x), nrow(grid))}))
+
+library(dplyr)
+# Controle the range
+dfplot <- dfplot %>%
+  group_by(name, x) %>%
+  mutate(range = max(value)-min(value))%>%
+  ungroup()%>%
+  group_by(name) %>%
+  mutate(range = max(range))%>%
+  ungroup()%>%
+  mutate(value=value/range)%>%
+  dplyr::select(-range)
+
+```
+
+In these simulations, we generate 4 realisations of GPs with two levels of smoothness, ensuring that the range $\max_{\xX \in D} \vert \max_{t \in \xI} Z_{\xX, t} - \min_{t \in \xI} Z_{\xX, t}\vert \approx 1$. Below is a visual representation of these GPs.
+
+```{r figure1, fig.cap = "GP realisations considered", fig.fullwidth=TRUE, fig.height=4, fig.width=8, fig.align='center' ,fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+library(ggplot2)
+library(viridis)
+ggplot(dfplot, mapping=aes(x=t, y=x, fill=value))+
+  geom_raster()+
+  facet_grid(.~name)+  
+  scale_fill_viridis(option = "viridis")+
+  theme_bw()
+```
+
+We can also consider SLGPs for these GPs and various valyes of $\sigma$ to demonstrate its effect on the model's flexibility.
+
+```{r figure2, fig.cap = "Associated SLGP realisations for varying ranges", fig.fullwidth=TRUE, fig.height=8, fig.width=8, fig.align='center' ,fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+dfplot2 <- rbind(dfplot, dfplot, dfplot, dfplot)
+dfplot2$sigma <- c(sapply(c(0.1, 1, 5, 20), function(x){rep(x, nrow(dfplot))}))
+dfplot2 <- dfplot2 %>%
+  group_by(name, x, sigma)%>%
+  mutate(value=sigma*value)%>%
+  mutate(value=exp(value))%>%
+  mutate(value=value/mean(value))%>%
+  ungroup()%>%
+  mutate(name=paste0("SL", name),
+         sigma=paste0("max Z - min Z = ", sigma))
+dfplot2$sigma <- factor(dfplot2$sigma,
+                        levels =paste0("max Z - min Z = ", c(0.1, 1, 5, 20)))
+scale_factor<- 0.1
+dfplot2 %>%
+  dplyr::filter(x %in% seq(0, 1,, 26))%>%
+  ggplot(aes(x=t, ymax=scale_factor*value+x, ymin=x, group=-x, fill=x))+
+  geom_ribbon(col="grey", alpha=0.9)+  # Add grey borders around each tile
+  scale_fill_viridis(option = "plasma",
+                     guide = guide_colorbar(nrow = 1,
+                                            title = "Indexing variable x",
+                                            barheight = unit(2, units = "mm"),
+                                            barwidth = unit(55, units = "mm"),
+                                            title.position = 'top',
+                                            label.position = "bottom",
+                                            title.hjust = 0.5))+
+  facet_grid(sigma~name, scales = "free_y")+
+  theme_bw()+
+  theme(legend.position = "bottom")+
+  ylab("Rescaled probability density")+
+  xlab("Response variable t")
+ggsave("./figures/ChoiceSigma.png", width=10, height=8)
+```
+
+These numerical experiment illustrate the influence of $\sigma$ on the SLGP's expressiveness: 
+
+* *Low Range (e.g., 0.1):*, SLGPs resemble fields of uniform distributions, showing limited flexibility.
+
+* *Moderate Range (e.g., 5): *  exhibit better flexibility, place probability mass across the entire interval $[0, 1]$, while differing sufficiently from the uniform distribution to approximate a broad spectrum of densities.
+
+* *Higher Range (e.g., 20): * SLGPs become overly "peaked", assigning probability mass to small regions and making the model highly sensitive to GP variations, which complicates inference
+
+Based on these observations, we have implemented SLGPs to maintain moderate ranges by choosing $\sigma$ a priori (i.e. without data infering in this choice) to achieve an approximate GP range of 5, balancing flexibility and stability.
+

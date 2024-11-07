@@ -122,14 +122,17 @@ dfplot %>%
   xlab("Response variable t")
 ```
 
-We draw samples from each of these four reference probability density fields at various values of the indexing variable $x$. These samples will be used to perform the inference, enabling us to assess how well the SLGP-based models can recover the underlying distributions. For each field, we generate 5 samples, with each sample consisting of up to 100000 data points.
+We draw samples from each of these four reference probability density fields at various values of the indexing variable $x$. These samples will be used to perform the inference, enabling us to assess how well the SLGP-based models can recover the underlying distributions. 
+
+We briefly investigate the 
 
 ```{r pardefine, include=FALSE}
 nmax <- 1e5
 nRep <- 5
 ```
 
-# Case 1: sampling x that are not truly uniform but on a coarse grid
+# Generating samples with various schemes for the 
+## Case 1: sampling x that are not truly uniform but on a coarse grid
 
 ```{r samplegeneration1, eval=FALSE}
 nmax <- 1e5
@@ -137,114 +140,130 @@ nRep <- 1
 i<- 1
 for(i in seq(nRep)){
   for(nDiscret in c(51, 501)){
-    cat(i, ".1\n")
-    set.seed(i)
-    x_candidates <- sample(seq(0, 1,, 51), nmax, replace=TRUE)
-    set.seed(i)
-    t <- as.data.frame(table(x_candidates))
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
-                           n=t$Freq, 
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp<- data.frame(x=sampTemp$x,
-                      t1 = sampTemp$t)
-    set.seed(i)
-    cat(i, ".2\n")
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
-                           n=t$Freq, 
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t2<- sampTemp$t
-    set.seed(i)
-    cat(i, ".3\n")
-    
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
-                           n=t$Freq, 
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t3<- sampTemp$t
-    set.seed(i)
-    cat(i, ".4\n")
-    
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=x_candidates), 
-                           n=1,
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t4<- sampTemp$t
-    set.seed(i)
-    shuffle <- sample(seq(nrow(samp)))
-    samp <- samp[shuffle, ]
-    save(samp, file=paste0("./samplingstudy/SLGPsSamp", i, 
-                           "discret", nDiscret, 
-                           "case1.Rdata"))
+    for(nmax in round(10**seq(1, 5, 0.5))){
+      
+      title_file <- paste0("./samplingstudy/SLGPsSamp", i, 
+                           "discret", nDiscret, "n", nmax,
+                           "case1.Rdata")
+      if(!file.exists(title_file)){
+        deb<- Sys.time()
+        cat(i, ".1\n")
+        set.seed(i)
+        x_candidates <- sample(seq(0, 1,, 101), nmax, replace=TRUE)
+        set.seed(i)
+        t <- as.data.frame(table(x_candidates))
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                               n=t$Freq, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp<- data.frame(x=sampTemp$x,
+                          t1 = sampTemp$t)
+        set.seed(i)
+        cat(i, ".2\n")
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                               n=t$Freq, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t2<- sampTemp$t
+        set.seed(i)
+        cat(i, ".3\n")
+        
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                               n=t$Freq, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t3<- sampTemp$t
+        set.seed(i)
+        cat(i, ".4\n")
+        
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                               n=t$Freq, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t4<- sampTemp$t
+        set.seed(i)
+        shuffle <- sample(seq(nrow(samp)))
+        samp <- samp[shuffle, ]
+        elapsed <- as.numeric(difftime(Sys.time(), deb, units="secs"))
+        save(samp, elapsed, file=title_file)
+      }
+    }
   }
+  
 }
 rm(sampTemp)
 gc()
 ```
 
-# Case 2: sampling x that are not truly uniform but on a fine grid
+## Case 2: sampling x that are not truly uniform but on a fine grid
 
 ```{r samplegeneration2, eval=FALSE}
 i<- 1
 for(i in seq(nRep)){
-  for(nDiscret in seq(51, 501)){
-    cat(i, ".1\n")
-    set.seed(i)
-    x_candidates <- sample(seq(0, 1,, 501), nmax, replace=TRUE)
-    set.seed(i)
-    t <- as.data.frame(table(x_candidates))
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
-                           n=t$Freq, 
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp<- data.frame(x=sampTemp$x,
-                      t1 = sampTemp$t)
-    set.seed(i)
-    cat(i, ".2\n")
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
-                           n=t$Freq, 
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t2<- sampTemp$t
-    set.seed(i)
-    cat(i, ".3\n")
-    
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
-                           n=t$Freq, 
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t3<- sampTemp$t
-    set.seed(i)
-    cat(i, ".4\n")
-    
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
-                           n=t$Freq, 
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t4<- sampTemp$t
-    set.seed(i)
-    shuffle <- sample(seq(nrow(samp)))
-    samp <- samp[shuffle, ]
-    save(samp, file=paste0("./samplingstudy/SLGPsSamp", i, 
-                           "discret", nDiscret, 
-                           "case2.Rdata"))
+  for(nDiscret in c(51, 501)){
+    for(nmax in round(10**seq(1, 5, 0.5))){
+      title_file <- paste0("./samplingstudy/SLGPsSamp", i, 
+                           "discret", nDiscret, "n", nmax,
+                           "case2.Rdata")
+      if(!file.exists(title_file)){
+        deb<- Sys.time()
+        cat(i, ".1\n")
+        set.seed(i)
+        x_candidates <- sample(seq(0, 1,, 1001), nmax, replace=TRUE)
+        set.seed(i)
+        t <- as.data.frame(table(x_candidates))
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                               n=t$Freq, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp<- data.frame(x=sampTemp$x,
+                          t1 = sampTemp$t)
+        set.seed(i)
+        cat(i, ".2\n")
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                               n=t$Freq, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t2<- sampTemp$t
+        set.seed(i)
+        cat(i, ".3\n")
+        
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                               n=t$Freq, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t3<- sampTemp$t
+        set.seed(i)
+        cat(i, ".4\n")
+        
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=as.numeric(as.character(t[, 1]))), 
+                               n=t$Freq, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t4<- sampTemp$t
+        set.seed(i)
+        shuffle <- sample(seq(nrow(samp)))
+        samp <- samp[shuffle, ]
+        elapsed <- as.numeric(difftime(Sys.time(), deb, units="secs"))
+        save(samp, elapsed, file=title_file)
+      }
+    }
   }
 }
 rm(sampTemp)
@@ -252,68 +271,239 @@ gc()
 ```
 
 
-# Case 3: sampling x that are truly uniform
+## Case 3: sampling x that are truly uniform
 
 ```{r samplegeneration3, eval=FALSE}
 nmax <- 1e5
 i<- 1
 for(i in seq(nRep)){
-  for(nDiscret in seq(51, 501)){
-    cat(i, ".1\n")
-    set.seed(i)
-    x_candidates <- runif(nmax)
-    set.seed(i)
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=x_candidates), 
-                           n=1, 
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp<- data.frame(x=sampTemp$x,
-                      t1 = sampTemp$t)
-    set.seed(i)
-    cat(i, ".2\n")
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=x_candidates), 
-                           n=1,
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t2<- sampTemp$t
-    set.seed(i)
-    cat(i, ".3\n")
-    
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=x_candidates), 
-                           n=1,
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t3<- sampTemp$t
-    set.seed(i)
-    cat(i, ".4\n")
-    
-    sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
-                           interpolateBasisFun="WNN",
-                           newX=data.frame(x=x_candidates), 
-                           n=1,
-                           nIntegral=101,
-                           nDiscret=nDiscret)
-    samp$t4<- sampTemp$t
-    set.seed(i)
-    shuffle <- sample(seq(nrow(samp)))
-    samp <- samp[shuffle, ]
-    save(samp, file=paste0("./samplingstudy/SLGPsSamp", i, 
-                           "discret", nDiscret, 
-                           "case3.Rdata"))
+  for(nDiscret in c(51, 501)){
+    for(nmax in round(10**seq(1, 5, 0.5))){
+      
+      title_file <- paste0("./samplingstudy/SLGPsSamp", i, 
+                           "discret", nDiscret, "n", nmax,
+                           "case3.Rdata")
+      if(!file.exists(title_file)){
+        deb<- Sys.time()
+        cat(i, ".1\n")
+        set.seed(i)
+        x_candidates <- runif(nmax)
+        set.seed(i)
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=x_candidates), 
+                               n=1, 
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp<- data.frame(x=sampTemp$x,
+                          t1 = sampTemp$t)
+        set.seed(i)
+        cat(i, ".2\n")
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=x_candidates), 
+                               n=1,
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t2<- sampTemp$t
+        set.seed(i)
+        cat(i, ".3\n")
+        
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=x_candidates), 
+                               n=1,
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t3<- sampTemp$t
+        set.seed(i)
+        cat(i, ".4\n")
+        
+        sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
+                               interpolateBasisFun="WNN",
+                               newX=data.frame(x=x_candidates), 
+                               n=1,
+                               nIntegral=101,
+                               nDiscret=nDiscret)
+        samp$t4<- sampTemp$t
+        set.seed(i)
+        shuffle <- sample(seq(nrow(samp)))
+        samp <- samp[shuffle, ]
+        elapsed <- as.numeric(difftime(Sys.time(), deb, units="secs"))
+        save(samp, elapsed, file=title_file)
+      }
+    }
   }
 }
-
 rm(sampTemp)
 gc()
 
 
 ```
+
+
+
+## Case 4: sampling x that are truly uniform, using  batches 
+
+```{r samplegeneration4, eval=FALSE}
+i<- 1
+nmaxbatch <- 500
+for(i in seq(nRep)){
+  for(nDiscret in c(51, 501)){
+    for(nmax in round(10**seq(1, 4, 0.5))){
+      
+      title_file <- paste0("./samplingstudy/SLGPsSamp", i, 
+                           "discret", nDiscret, "n", nmax,
+                           "case4.Rdata")
+      if(!file.exists(title_file)){
+        deb<- Sys.time()
+        if(nmax > nmaxbatch){
+          L <- list()
+          for(j in seq(ceiling(nmax/nmaxbatch))){
+            if(j <= nmax/nmaxbatch){
+              ncurrent <- nmaxbatch
+            }else{
+              ncurrent <- nmax %% nmaxbatch
+            }
+            cat(i, ".",j, ". 1\n")
+          set.seed(i)
+          x_candidates <- runif(ncurrent)
+          set.seed(i)
+          sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
+                                 interpolateBasisFun="WNN",
+                                 newX=data.frame(x=x_candidates), 
+                                 n=1, 
+                                 nIntegral=101,
+                                 nDiscret=nDiscret)
+          samp<- data.frame(x=sampTemp$x,
+                            t1 = sampTemp$t)
+          set.seed(i)
+          cat(i, ".",j, ". 2\n")
+          sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
+                                 interpolateBasisFun="WNN",
+                                 newX=data.frame(x=x_candidates), 
+                                 n=1,
+                                 nIntegral=101,
+                                 nDiscret=nDiscret)
+          samp$t2<- sampTemp$t
+          set.seed(i)
+          cat(i, ".",j, ". 3\n")
+          
+          sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
+                                 interpolateBasisFun="WNN",
+                                 newX=data.frame(x=x_candidates), 
+                                 n=1,
+                                 nIntegral=101,
+                                 nDiscret=nDiscret)
+          samp$t3<- sampTemp$t
+          set.seed(i)
+          cat(i, ".", j, ". 4\n")
+          
+          sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
+                                 interpolateBasisFun="WNN",
+                                 newX=data.frame(x=x_candidates), 
+                                 n=1,
+                                 nIntegral=101,
+                                 nDiscret=nDiscret)
+          samp$t4<- sampTemp$t
+          set.seed(i)
+          shuffle <- sample(seq(nrow(samp)))
+          samp <- samp[shuffle, ]
+          L[[j]] <- samp
+          }
+          samp<- do.call(rbind, L)
+        }else{
+          cat(i, ".1\n")
+          set.seed(i)
+          x_candidates <- runif(nmax)
+          set.seed(i)
+          sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
+                                 interpolateBasisFun="WNN",
+                                 newX=data.frame(x=x_candidates), 
+                                 n=1, 
+                                 nIntegral=101,
+                                 nDiscret=nDiscret)
+          samp<- data.frame(x=sampTemp$x,
+                            t1 = sampTemp$t)
+          set.seed(i)
+          cat(i, ".2\n")
+          sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
+                                 interpolateBasisFun="WNN",
+                                 newX=data.frame(x=x_candidates), 
+                                 n=1,
+                                 nIntegral=101,
+                                 nDiscret=nDiscret)
+          samp$t2<- sampTemp$t
+          set.seed(i)
+          cat(i, ".3\n")
+          
+          sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
+                                 interpolateBasisFun="WNN",
+                                 newX=data.frame(x=x_candidates), 
+                                 n=1,
+                                 nIntegral=101,
+                                 nDiscret=nDiscret)
+          samp$t3<- sampTemp$t
+          set.seed(i)
+          cat(i, ".4\n")
+          
+          sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
+                                 interpolateBasisFun="WNN",
+                                 newX=data.frame(x=x_candidates), 
+                                 n=1,
+                                 nIntegral=101,
+                                 nDiscret=nDiscret)
+          samp$t4<- sampTemp$t
+          set.seed(i)
+          shuffle <- sample(seq(nrow(samp)))
+          samp <- samp[shuffle, ]
+        }
+        
+        elapsed <- as.numeric(difftime(Sys.time(), deb, units="secs"))
+        save(samp, elapsed, file=title_file)
+      }
+    }
+  }
+}
+rm(sampTemp)
+gc()
+
+
+```
+
+
+```{r}
+df_time <- data.frame(expand.grid(c(51, 501), seq(4), round(10**seq(1, 5, 0.5))))
+colnames(df_time) <- c("nDiscret", "case", "n")
+df_time$Discretisation <- paste0("Discretisation with ", df_time$nDiscret, " nodes.")
+df_time$CaseText <- c("X sampled on a regular grid with 101 nodes.",
+                      "X sampled on a regular grid with 1001 nodes.",
+                      "X sampled on all of [0, 1] without batches.",
+                      "X sampled on all of [0, 1] with batches.")[df_time$case]
+df_time$time <- NA
+for(i in seq(nrow(df_time))){
+  file_title <- paste0("./samplingstudy/SLGPsSamp1discret", df_time$nDiscret[i], 
+                       "n", df_time$n[i],
+                       "case", df_time$case[i],".Rdata")
+  if(file.exists(file_title)){
+    load(file_title)
+    df_time$time[i] <- elapsed
+  }
+}
+df_time %>%
+  dplyr::filter(!is.na(time))%>%
+  ggplot(aes(x=n, y=time, col=CaseText))+
+  geom_line()+
+  geom_point()+
+  facet_grid(.~factor(Discretisation, 
+                      levels= paste0("Discretisation with ", 
+                                     c(51, 501), " nodes.")))+
+  theme_bw()+
+  scale_x_log10()
+
+```
+
+# Doing estimation 
 
 ```{r sampleload, include=FALSE}
 listN <- c(   5, 10, 

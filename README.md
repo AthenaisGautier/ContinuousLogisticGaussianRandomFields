@@ -76,6 +76,50 @@ Where for two pdfs $f_1$, $f_2$ on $\mathcal{T}$:
 
 [The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteConsistency.html)
 
+This vignette is about exploring the posterior consistency of Spatial Logistic Gaussian Processes (SLGPs) in estimating response distributions given predictor values. 
+
+
+To assess the performance of SLGP-based models, we define four reference probability density fields. These fields are generated as realizations of finite-rank SLGPs. The hyperparameters of these SLGPs are known and consistent across all four references. However, the spatial regularity of these fields varies and enables us to explore the impact of spatial regularity on the performance of SLGP-based models and assess their ability to capture the underlying structure of the data.
+
+<img src="[https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref_fields2.png](https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref_fields2.png)" alt="The four reference fields" width="700"/>
+
+ We then draw samples from these references and evaluate the performance of SLGP-based models. This phase involves conducting inference experiments under various conditions to comprehensively assess the models' ability to recover the underlying distributions.
+ 
+* Reference Fields: we consider four distinct reference probability density fields.
+
+* Levels of Smoothness: we consider different SLGP modeling, corresponding to the different kernel functions used in generating the reference fields.
+* Exponential Kernel: This kernel parametrizes GPs whose realizations are continuous but not differentiable. It produces fields with rough spatial structures.
+* Matérn 3/2 Kernel: Known for parametrizing GPs whose realizations are once continuously differentiable, this kernel generates fields with moderate smoothness.
+* Matérn 5/2 Kernel: This kernel parametrizes GPs that are twice continuously differentiable, resulting in smoother fields compared to the Matérn 3/2 kernel.
+* Gaussian Kernel: Also known as the Radial Basis Function (RBF) kernel, this kernel parametrizes GPs whose realizations are infinitely differentiable, producing fields with very smooth spatial structures.
+
+* Number of Basis Function Frequencies: We work with various numbers of basis functions in the parametrization of the SLGP, determined through the Random Fourier Features (RFF) method. We compare having 25, 50, 100, 250 or 500 basis frequencies, and twice as many basis functions (one sine, one cosine for each frequency).
+* Sample Sizes: we work with a range of sample sizes, varying from 5 to 10000000 data points.
+
+To ensure the robustness of our results and mitigate the impact of random seed variability, we perform 100 repetitions for each experimental setting. This comprehensive experimental design leads to a total of:
+\[
+\underbrace{100}_{\text{Repetitions}} \times 
+\underbrace{4}_{\text{Reference Models}} \times 
+\underbrace{4}_{\text{Levels of Smoothness}} \times 
+\underbrace{5}_{\text{Number of Basis Functions}} \times 
+\underbrace{20}_{\text{Sample Sizes}} = 160,000 \text{ experiments}
+\]
+
+We assess the quality of our SLGP-based model estimations using an Integrated Hellinger distance to measure dissimilarity between two probability density valued fields $f(\xX, \cdot)$ and $f'(\xX, \cdot)$:
+
+\[
+d_{IH}^2(f(x, \cdot) , f'(x, \cdot) ) = \frac{1}{2}\int_D \int_T \left( \sqrt{f(\mathbf{v}, u)} - \sqrt{f'(\mathbf{v}, u))}  \right)^2 \,du \,d\mathbf{v}
+\]
+
+In the following Figure, we display the distribution of $d_{IH}$ between true and estimated fields in our experimental design.
+
+<img src="[https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/consistency-distance2.png](https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/consistency-distance2.png)" alt="Illustration of the quality of the estimation evolving with sample size and number of features" width="700"/>
+
+We display the MAP estimates of the density fields for different sample sizes within a well-specified SLGP setting. 
+
+
+<img src="[https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref4mod4nFreq500.png](https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref4mod4nFreq500.png)" alt="Evolution of the estimation" width="700"/>
+
 ## A meteorological application on real-world data
 
 [The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteMeteo.html)

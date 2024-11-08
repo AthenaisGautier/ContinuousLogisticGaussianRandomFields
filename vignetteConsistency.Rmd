@@ -344,9 +344,9 @@ To achieve this, we vary the following over different experiments:
 * Gaussian Kernel: Also known as the Radial Basis Function (RBF) kernel, this kernel parametrizes GPs whose realizations are infinitely differentiable, producing fields with very smooth spatial structures.
 
 * Number of Basis Function Frequencies: We work with various numbers of basis functions in the parametrization of the SLGP, determined through the Random Fourier Features (RFF) method. We compare having 25, 50, 100, 250 or 500 basis frequencies, and twice as many basis functions (one sine, one cosine for each frequency).
-* Sample Sizes: we work with a range of sample sizes, varying from 5 to 250000 data points.
+* Sample Sizes: we work with a range of sample sizes, varying from 5 to 10000000 data points.
 
-To ensure the robustness of our results and mitigate the impact of random seed variability, we perform 25 repetitions for each experimental setting. This comprehensive experimental design leads to a total of:
+To ensure the robustness of our results and mitigate the impact of random seed variability, we perform 100 repetitions for each experimental setting. This comprehensive experimental design leads to a total of:
 \[
 \underbrace{100}_{\text{Repetitions}} \times 
 \underbrace{4}_{\text{Reference Models}} \times 

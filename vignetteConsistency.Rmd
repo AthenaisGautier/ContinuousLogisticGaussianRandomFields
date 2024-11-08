@@ -356,7 +356,7 @@ To ensure the robustness of our results and mitigate the impact of random seed v
 \]
 
 
-By conducting these 30,000 experiments, we aim to thoroughly evaluate the posterior consistency and overall performance of SLGP-based models across diverse scenarios, varying in data sparsity, model smoothness, and basis function complexity.
+By conducting these 160,000 experiments, we aim to thoroughly evaluate the posterior consistency and overall performance of SLGP-based models across diverse scenarios, varying in data sparsity, model smoothness, and basis function complexity.
 
 For reproducibility, we provide the code used to perform the analyses. However, due to the independence of each experiment, we executed them in parallel on, UBELIX the high-performance computing cluster of the University of Bern.[TODO: citation]
 

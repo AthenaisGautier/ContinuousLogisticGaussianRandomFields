@@ -70,6 +70,7 @@ load(file="SLGPsRef.Rdata")
 We display the corresponding probability density functions (PDFs) for a few instances of the underlying indexing variable $x$. 
 
 ```{r reffigure, fig.cap = "Probability density fields (displayed for a few indices x) with different spatial regularity", fig.fullwidth=TRUE, fig.height=5, fig.width=10, fig.align='center' ,fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+
 set.seed(123)
 epsilon <- rnorm(SLGP1@p, sd=sqrt(SLGP1@hyperparams$sigma2))
 SLGP1@coefficients <-
@@ -274,11 +275,12 @@ gc()
 ## Case 3: sampling x that are truly uniform
 
 ```{r samplegeneration3, eval=FALSE}
-nmax <- 1e5
+nmax <- 10000
 i<- 1
+nDiscret <- 51
 for(i in seq(nRep)){
   for(nDiscret in c(51, 501)){
-    for(nmax in round(10**seq(1, 5, 0.5))){
+    for(nmax in round(10**seq(1, 4, 0.5))){
       
       title_file <- paste0("./samplingstudy/SLGPsSamp", i, 
                            "discret", nDiscret, "n", nmax,
@@ -342,144 +344,13 @@ gc()
 ```
 
 
-
-## Case 4: sampling x that are truly uniform, using  batches 
-
-```{r samplegeneration4, eval=FALSE}
-i<- 1
-nmaxbatch <- 500
-for(i in seq(nRep)){
-  for(nDiscret in c(51, 501)){
-    for(nmax in round(10**seq(1, 4, 0.5))){
-      
-      title_file <- paste0("./samplingstudy/SLGPsSamp", i, 
-                           "discret", nDiscret, "n", nmax,
-                           "case4.Rdata")
-      if(!file.exists(title_file)){
-        deb<- Sys.time()
-        if(nmax > nmaxbatch){
-          L <- list()
-          for(j in seq(ceiling(nmax/nmaxbatch))){
-            if(j <= nmax/nmaxbatch){
-              ncurrent <- nmaxbatch
-            }else{
-              ncurrent <- nmax %% nmaxbatch
-            }
-            cat(i, ".",j, ". 1\n")
-          set.seed(i)
-          x_candidates <- runif(ncurrent)
-          set.seed(i)
-          sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
-                                 interpolateBasisFun="WNN",
-                                 newX=data.frame(x=x_candidates), 
-                                 n=1, 
-                                 nIntegral=101,
-                                 nDiscret=nDiscret)
-          samp<- data.frame(x=sampTemp$x,
-                            t1 = sampTemp$t)
-          set.seed(i)
-          cat(i, ".",j, ". 2\n")
-          sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
-                                 interpolateBasisFun="WNN",
-                                 newX=data.frame(x=x_candidates), 
-                                 n=1,
-                                 nIntegral=101,
-                                 nDiscret=nDiscret)
-          samp$t2<- sampTemp$t
-          set.seed(i)
-          cat(i, ".",j, ". 3\n")
-          
-          sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
-                                 interpolateBasisFun="WNN",
-                                 newX=data.frame(x=x_candidates), 
-                                 n=1,
-                                 nIntegral=101,
-                                 nDiscret=nDiscret)
-          samp$t3<- sampTemp$t
-          set.seed(i)
-          cat(i, ".", j, ". 4\n")
-          
-          sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
-                                 interpolateBasisFun="WNN",
-                                 newX=data.frame(x=x_candidates), 
-                                 n=1,
-                                 nIntegral=101,
-                                 nDiscret=nDiscret)
-          samp$t4<- sampTemp$t
-          set.seed(i)
-          shuffle <- sample(seq(nrow(samp)))
-          samp <- samp[shuffle, ]
-          L[[j]] <- samp
-          }
-          samp<- do.call(rbind, L)
-        }else{
-          cat(i, ".1\n")
-          set.seed(i)
-          x_candidates <- runif(nmax)
-          set.seed(i)
-          sampTemp <- sampleSLGP(SLGPmodel=SLGP1, 
-                                 interpolateBasisFun="WNN",
-                                 newX=data.frame(x=x_candidates), 
-                                 n=1, 
-                                 nIntegral=101,
-                                 nDiscret=nDiscret)
-          samp<- data.frame(x=sampTemp$x,
-                            t1 = sampTemp$t)
-          set.seed(i)
-          cat(i, ".2\n")
-          sampTemp <- sampleSLGP(SLGPmodel=SLGP2, 
-                                 interpolateBasisFun="WNN",
-                                 newX=data.frame(x=x_candidates), 
-                                 n=1,
-                                 nIntegral=101,
-                                 nDiscret=nDiscret)
-          samp$t2<- sampTemp$t
-          set.seed(i)
-          cat(i, ".3\n")
-          
-          sampTemp <- sampleSLGP(SLGPmodel=SLGP3, 
-                                 interpolateBasisFun="WNN",
-                                 newX=data.frame(x=x_candidates), 
-                                 n=1,
-                                 nIntegral=101,
-                                 nDiscret=nDiscret)
-          samp$t3<- sampTemp$t
-          set.seed(i)
-          cat(i, ".4\n")
-          
-          sampTemp <- sampleSLGP(SLGPmodel=SLGP4, 
-                                 interpolateBasisFun="WNN",
-                                 newX=data.frame(x=x_candidates), 
-                                 n=1,
-                                 nIntegral=101,
-                                 nDiscret=nDiscret)
-          samp$t4<- sampTemp$t
-          set.seed(i)
-          shuffle <- sample(seq(nrow(samp)))
-          samp <- samp[shuffle, ]
-        }
-        
-        elapsed <- as.numeric(difftime(Sys.time(), deb, units="secs"))
-        save(samp, elapsed, file=title_file)
-      }
-    }
-  }
-}
-rm(sampTemp)
-gc()
-
-
-```
-
-
-```{r}
-df_time <- data.frame(expand.grid(c(51, 501), seq(4), round(10**seq(1, 5, 0.5))))
+```{r, fig.cap = "Execution time on a laptop", fig.fullwidth=TRUE, fig.height=5, fig.width=8, fig.align='center' ,fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+df_time <- data.frame(expand.grid(c(51, 501), seq(3), round(10**seq(1, 5, 0.5))))
 colnames(df_time) <- c("nDiscret", "case", "n")
-df_time$Discretisation <- paste0("Discretisation with ", df_time$nDiscret, " nodes.")
+df_time$Discretisation <- paste0("CDF discretisation with ", df_time$nDiscret, " nodes.")
 df_time$CaseText <- c("X sampled on a regular grid with 101 nodes.",
                       "X sampled on a regular grid with 1001 nodes.",
-                      "X sampled on all of [0, 1] without batches.",
-                      "X sampled on all of [0, 1] with batches.")[df_time$case]
+                      "X sampled on all of [0, 1].")[df_time$case]
 df_time$time <- NA
 for(i in seq(nrow(df_time))){
   file_title <- paste0("./samplingstudy/SLGPsSamp1discret", df_time$nDiscret[i], 
@@ -496,19 +367,212 @@ df_time %>%
   geom_line()+
   geom_point()+
   facet_grid(.~factor(Discretisation, 
-                      levels= paste0("Discretisation with ", 
+                      levels= paste0("CDF discretisation with ", 
                                      c(51, 501), " nodes.")))+
   theme_bw()+
-  scale_x_log10()
+  scale_x_log10()+
+  labs(
+    y = "Execution time [s]",
+    x = "Sample size",
+    col = "Sampling strategy"
+  )
+
 
 ```
+The blow-up in execution times for large samples is mostly due to the need to compute a normalisation term for all different values of $x$.
 
 # Doing estimation 
 
-```{r sampleload, include=FALSE}
-listN <- c(   5, 10, 
-              25, 50, 100, 
-              250, 500, 1000, 
-              2500, 5000, 10000, 
-              25000, 50000, 100000)
+```{r sampleload, eval=FALSE}
+
+for(case in seq(3)){
+  for(nDiscret in c(51, 501)){
+    for(nFreq in c(25, 100, 500)){
+      if(case %in% c(1, 2)){
+        load(paste0("./samplingstudy/SLGPsSamp1discret", nDiscret, 
+                    "n1e+05case", case, ".Rdata"))
+        listN <- round(10**seq(1, 5, 1))
+      }else{
+        load(paste0("./samplingstudy/SLGPsSamp1discret", nDiscret, 
+                    "n10000case", case, ".Rdata"))
+        listN <- round(10**seq(1, 4, 1))
+      }
+      for(ref in seq(4)){
+        modid <- ref
+        for(nsamp in listN){
+          title_file <- paste0("./samplingstudy/SLGP_ref1_mod1_freq", 
+                               nFreq, "_n", nsamp, "_case", case,
+                               "_nDiscret", nDiscret, "_ref", ref, ".RData")
+          if(!file.exists(title_file)){
+            cat(title_file, "\n")
+            ind <- c(1:nsamp)
+            if(ref==1){
+              #exp
+              current_samp <- data.frame(t=samp$t1[ind], x=samp$x[ind])
+              refval <- pred1$pdf_1
+              BasisFunParam <- SLGP1@BasisFunParam
+            }
+            if(ref==2){
+              #Mat32
+              current_samp <- data.frame(t=samp$t2[ind], x=samp$x[ind]) 
+              refval <- pred2$pdf_1
+              BasisFunParam <- SLGP2@BasisFunParam
+            }
+            if(ref==3){
+              #Mat52            
+              current_samp <- data.frame(t=samp$t3[ind], x=samp$x[ind]) 
+              refval <- pred3$pdf_1
+              BasisFunParam <- SLGP3@BasisFunParam
+              
+            }
+            if(ref==4){
+              #Gau
+              current_samp <- data.frame(t=samp$t4[ind], x=samp$x[ind]) 
+              refval <- pred4$pdf_1
+              BasisFunParam <- SLGP4@BasisFunParam
+            }
+            BasisFunParam$freq <- BasisFunParam$freq[c(1:nFreq, 500+(1:nFreq)), ]
+            BasisFunParam$coef <- rep(1/sqrt(nFreq), 2*nFreq)
+            BasisFunParam$offset <- BasisFunParam$offset[c(1:nFreq, 500+(1:nFreq))]
+            if(modid==4){
+              mod <- slgp(t~x,
+                          data=current_samp,
+                          method ="MAP",
+                          basisFunctionsUsed="RFF",
+                          interpolateBasisFun="WNN",
+                          hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
+                          predictorsUpper= c(1),
+                          predictorsLower= c(0),
+                          responseRange= c(0, 1),
+                          sigmaEstimationMethod = "none",
+                          seed=1,
+                          BasisFunParam=BasisFunParam,
+                          opts_BasisFun = list(nFreq=nFreq,
+                                               MatParam=Inf))
+            }else{
+              mod <- slgp(t~x,
+                          data=current_samp,
+                          method ="MAP",
+                          basisFunctionsUsed="RFF",
+                          interpolateBasisFun="WNN",
+                          hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
+                          predictorsUpper= c(1),
+                          predictorsLower= c(0),
+                          responseRange= c(0, 1),
+                          sigmaEstimationMethod = "none",
+                          seed=1,
+                          BasisFunParam=BasisFunParam,
+                          opts_BasisFun = list(nFreq=nFreq,
+                                               MatParam=1/2+modid-1))
+            }
+            mod <- slgp(t~x,
+                        data=current_samp,
+                        method ="MAP",
+                        basisFunctionsUsed="RFF",
+                        interpolateBasisFun="WNN",
+                        hyperparams = list(lengthscale=c(0.1, 0.1), sigma2=0.5),
+                        predictorsUpper= c(1),
+                        predictorsLower= c(0),
+                        responseRange= c(0, 1),
+                        sigmaEstimationMethod = "none",
+                        seed=1,
+                        BasisFunParam=BasisFunParam,
+                        opts_BasisFun = list(nFreq=nFreq,
+                                             MatParam=1/2))
+            predMod <- predictSLGP_newNode(SLGPmodel = mod, newNodes = dfGrid2)
+            predMod$ref <- refval
+            dH <- (predMod %>%
+                     group_by(x) %>%
+                     summarise(value=mean((sqrt(pdf_1) - sqrt(ref))^2)/2) %>%
+                     ungroup() %>%
+                     summarise(value=sqrt(mean(value))))$value
+            save(mod, dH, file=title_file)
+          }
+        }
+      }
+    }
+  }
+  
+}
 ```
+
+
+This code is to compile previously obtained results
+
+```{r estimationcompile, eval=FALSE}
+dfres <- data.frame()
+listN <- round(10**seq(1, 5, 1))
+
+for(case in seq(3)){
+  for(nDiscret in c(51, 501)){
+    for(nFreq in c(25, 100,500)){
+      for(n in listN){
+        title_file <- paste0("./samplingstudy/SLGP_ref1_mod1_freq", 
+                             nFreq, "_n", n, "_case", case,
+                             "_nDiscret", nDiscret, ".RData")
+        if(file.exists(title_file)){
+          load(file=title_file)
+          tempdf <- data.frame(nFreq=nFreq,
+                               case=c("X sampled on a regular grid with 101 nodes.",
+                                      "X sampled on a regular grid with 1001 nodes.",
+                                      "X sampled on all of [0, 1].")[case],
+                               nDiscret=paste0("CDF discretisation with ", 
+                                               nDiscret, " nodes."),
+                               n=n,
+                               dH=dH)
+          dfres <- rbind(dfres, tempdf)
+        }
+      }
+    }
+  }
+}
+
+dfres$case <- factor(dfres$case,
+                     levels=c("X sampled on a regular grid with 101 nodes.",
+                              "X sampled on a regular grid with 1001 nodes.",
+                              "X sampled on all of [0, 1]."))
+dfres$nDiscret <- factor(dfres$nDiscret,
+                         levels=paste0("CDF discretisation with ", 
+                                       c(51, 501), " nodes."))
+save(dfres, file="./samplingstudy/compiledRes.RData")
+```
+
+
+```{r finalplot, fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center' ,fig.pos="H"}
+load(file="./samplingstudy/compiledRes.RData")
+
+dfres %>%
+  filter(!is.na(dH))%>%
+  ggplot()+
+  geom_line(mapping=aes(x=n, y=dH, col=as.factor(2*nFreq), lty=nDiscret))+
+  geom_hline(yintercept = 0, col="grey")+
+  facet_grid(.~case)+
+  scale_x_log10()+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "bottom",
+        legend.direction = "horizontal"
+  ) +
+  labs(
+    y = "Integrated Squared Hellinger distance",
+    x = "Sample size",
+    col = "Number of basis functions",
+    fill = "Number of basis functions"
+  )
+```
+
+```{r}
+ggplot(sampTemp, aes(x=x, y=t) ) +
+  stat_density_2d(aes(fill = ..density..), geom = "raster", contour = FALSE) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  theme(
+    legend.position='none'
+  )
+
+ggplot(dfplot, aes(x=x, y=t, fill=pdf_1))+
+  geom_raster()+
+  facet_grid(.~kernel)+
+  geom_point(samp, mapping=aes(x=x, y=t1), inherit.aes=FALSE, pch=".", col="white")
+```
+

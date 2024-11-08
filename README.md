@@ -81,7 +81,7 @@ This vignette is about exploring the posterior consistency of Spatial Logistic G
 
 To assess the performance of SLGP-based models, we define four reference probability density fields. These fields are generated as realizations of finite-rank SLGPs. The hyperparameters of these SLGPs are known and consistent across all four references. However, the spatial regularity of these fields varies and enables us to explore the impact of spatial regularity on the performance of SLGP-based models and assess their ability to capture the underlying structure of the data.
 
-<img src="[https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref_fields2.png](https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref_fields2.png)" alt="The four reference fields" width="700"/>
+<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref_fields2.png" alt="The four reference fields" width="700"/>
 
  We then draw samples from these references and evaluate the performance of SLGP-based models. This phase involves conducting inference experiments under various conditions to comprehensively assess the models' ability to recover the underlying distributions.
  
@@ -113,12 +113,12 @@ d_{IH}^2(f(x, \cdot) , f'(x, \cdot) ) = \frac{1}{2}\int_D \int_T \left( \sqrt{f(
 
 In the following Figure, we display the distribution of $d_{IH}$ between true and estimated fields in our experimental design.
 
-<img src="[https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/consistency-distance2.png](https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/consistency-distance2.png)" alt="Illustration of the quality of the estimation evolving with sample size and number of features" width="700"/>
+<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/consistency-distance2.png" alt="Illustration of the quality of the estimation evolving with sample size and number of features" width="700"/>
 
 We display the MAP estimates of the density fields for different sample sizes within a well-specified SLGP setting. 
 
 
-<img src="[https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref4mod4nFreq500.png](https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref4mod4nFreq500.png)" alt="Evolution of the estimation" width="700"/>
+<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref4mod4nFreq500.png" alt="Evolution of the estimation" width="700"/>
 
 ## A meteorological application on real-world data
 

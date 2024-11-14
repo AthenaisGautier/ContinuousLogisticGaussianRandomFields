@@ -71,7 +71,7 @@ stations <- unique(X[, c(1, 8:13)])
 world_map <- map_data("world", region="Switzerland") #Load a map
 ```
 
-```{r topography, fig.fullwidth=TRUE, fig.height=5,fig.pos="H", warning=FALSE, message=FALSE, include=FALSE}
+```{r topography, include=FALSE, warning=FALSE, message=FALSE, echo=FALSE}
 load(file="topography.RData")
 switzerland <- ggplot() + 
   geom_raster(topography, mapping=aes(x=long, y=lat, fill=h*0), fill="white") +
@@ -94,13 +94,15 @@ switzerland <- ggplot() +
   xlab("Longitude") + ylab("Latitude") 
 ```
 
-```{r mapplot1, include=FALSE, fig.cap="Meteorological stations where measurements are available"}
+```{r mapplot1, include=FALSE, fig.cap="Meteorological stations where measurements are available", fig.fullwidth=TRUE, fig.height=8, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 library(ggrepel)
 plot_map <-switzerland+
   # theme_classic()+
   geom_point(data=stations, mapping = aes(x=Longitude, y=Latitude)) +
   geom_label_repel(data=stations,
-                   aes(x = Longitude, y = Latitude, label=Station),
+                   aes(x = Longitude, y = Latitude, 
+                       label=Station),
+                   # label=paste0(Station, "(", Station.height.m..a..sea.level, "m)")),
                    size=3, alpha=0.9, 
                    point.padding = 0., 
                    nudge_x = .25,
@@ -108,8 +110,8 @@ plot_map <-switzerland+
                    segment.curvature = -1e-20)+
   theme(plot.title=element_text(size=10, hjust = 0.5))
 plot_map
-ggsave("./figures/map_switzerland.png", width=6, height=3.5)
-ggsave("./figures/map_switzerland.pdf", width=6, height=3.5)
+ggsave("./figures/map_switzerland.png", width=8, height=4.5)
+ggsave("./figures/map_switzerland.pdf", width=8, height=4.5)
 ```
 
 To ensure a smooth modeling process, we prepare the dataset by renaming variables for clarity and storing their respective value ranges. This step facilitates easier handling of variables in subsequent modeling steps.
@@ -129,24 +131,33 @@ summary(samples)
 
 We will use data from stations outside the canton of Bern for training the SLGP model, leaving the remaining stations as a test set to assess generalization. The model will predict temperature distributions based on the latitude, longitude, and altitude of each station.
 
-```{r plotdensities, fig.fullwidth=TRUE, fig.height=5,fig.pos="H", warning=FALSE, message=FALSE}
+```{r plotdensities, fig.cap = "Empirical distributions of temperatures at the considered stations", fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 plotDensities <- merge(samples, stations[, c(2, 4, 5, 7)]) %>%
   mutate(inCantonBE = Canton=="BE")%>%
-  ggplot()+  
-  geom_histogram(mapping=aes(x=Temperature, y=after_stat(density), col=inCantonBE, fill=inCantonBE), 
-                 breaks = seq(-30, 40, 2.5), alpha=0.2)+
-  geom_density(mapping=aes(x=Temperature, col=inCantonBE))+
-  scale_color_manual(values=c("darkgrey", "cornflowerblue"))+
-  scale_fill_manual(values=c("darkgrey", "cornflowerblue"))+
-  facet_wrap(Station~.)+
+  mutate(inCantonBE2 = ifelse(inCantonBE, 
+                              "In the canton of Bern (test set)", 
+                              "Out of the canton of Bern (train set)"))%>%
+  ggplot()+    
+  geom_line(data=data.frame(x=c(1:2-1000), y=c(0, 0)),
+            mapping=aes(x=x, y=y, col="Pointwise KDE"))+
+  geom_histogram(mapping=aes(x=Temperature, y=after_stat(density), 
+                             fill=inCantonBE2),  col="white", lwd=0.1,
+                 breaks = seq(-30, 40, 2.0), alpha=0.2, lwd=0.01)+
+  geom_density(mapping=aes(x=Temperature), col="black")+
+  scale_fill_manual(values=c("In the canton of Bern (test set)"="cornflowerblue", 
+                             "Out of the canton of Bern (train set)"="darkgrey"))+
+  facet_wrap(paste0(Station, " (", Altitude, "m)")~.)+
   theme_bw() +
   theme(legend.position = "bottom")+
   labs(title = "Temperature distribution by station.",
-       subtitle = "Histograms and pointwise kernel density estimators (grey for the train set, blue for the test).",
+       subtitle = "Empirical distributions in the dataset",
        x = "Temperature (°C)",
        y = "Density",
-       color = "Station in the canton of Bern",
-       fill = "Station in the canton of Bern")
+       fill = "Canton of the station",
+       col="Curve represented")+
+  coord_cartesian(xlim=range_temp, ylim=c(0, 0.07))+
+  scale_color_manual(values=c("SLGP-MAP"="red",
+                              "Pointwise KDE"="black"))
 plotDensities
 ```
 
@@ -155,7 +166,7 @@ plotDensities
 
 To understand the model's baseline behavior, we perform an initial SLGP estimation using arbitrary hyperparameters. This first run provides insight into the model’s ability to capture the temperature distribution’s overall structure.
 
-```{r SLGPtoobig, fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.pos="H", warning=FALSE, message=FALSE}
+```{r SLGPtoobig, fig.cap = "A SLGP estimation with poorly chosen lengthscale (too big)", fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 library(SLGP)
 samples <- merge(samples, stations[, c(2, 4, 5, 7)]) %>%
   mutate(inCantonBE = Canton=="BE")
@@ -178,7 +189,7 @@ model1 <- slgp(Temperature~.,
                seed=1,
                opts_BasisFun = list(nFreq=250,
                                     MatParam=5/2))
-dfGrid <- expand.grid(seq(-30, 40,, 1001), seq(nrow(stations)))
+dfGrid <- expand.grid(seq(-30, 40,, 201), seq(nrow(stations)))
 dfGrid <- cbind(dfGrid[, 1], stations[dfGrid[, 2], c(4, 5, 3)])
 colnames(dfGrid) <- c("Temperature", "Latitude", "Longitude", "Altitude")
 pred <- predictSLGP_newNode(SLGPmodel=model1,
@@ -187,12 +198,12 @@ pred <- merge(pred, stations[, c(2, 4, 5, 7)]) %>%
   mutate(inCantonBE = Canton=="BE")
 
 plotDensities + 
-  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_1),
-            col="red")+
+  geom_line(data = pred, mapping=aes(x=Temperature, 
+                                     y=pdf_1,
+                                     col="SLGP-MAP"))+
   labs(title = "Temperature distribution by station.",
-       subtitle = "Histograms and pointwise kernel density estimators 
-       (grey for the train set, blue for the test),
-       \nSLGP MAP estimator with poorly chosen hyperparameters (red curves).")
+       subtitle = "Empirical distributions in the dataset and SLGP MAP estimator with poorly chosen hyperparameters (large value).",
+       col="Curve represented") 
 ```
 
 The initial results show that while the model captures the general support of the temperature distribution, it fails to capture finer details, such as multi-modalities in certain distributions. This limitation likely arises from using a large length scale, which oversmooths small-scale variations.
@@ -200,7 +211,7 @@ The initial results show that while the model captures the general support of th
 To investigate further, we run the SLGP with a much smaller length scale. This adjustment helps reveal the model’s response to hyperparameter tuning and allows us to compare results across different spatial aggregation levels.
 
 
-```{r SLGPtoosmall, fig.fullwidth=TRUE,  fig.height=8, fig.width=10, fig.pos="H", warning=FALSE, message=FALSE}
+```{r SLGPtoosmall, fig.cap = "A SLGP estimation with poorly chosen lengthscale (too small)", fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 model2 <- slgp(Temperature~.,
                data=samples[!samples$inCantonBE, 1:4],
                method="MAP",
@@ -225,12 +236,14 @@ pred <- merge(pred, stations[, c(2, 4, 5, 7)]) %>%
   mutate(inCantonBE = Canton=="BE")
 
 plotDensities + 
-  geom_line(data = pred, mapping=aes(x=Temperature, y=pdf_1),
-            col="red")+
+  geom_line(data = pred, mapping=aes(x=Temperature, 
+                                     y=pdf_1,
+                                     col="SLGP-MAP"))+
+  scale_color_manual(values=c("SLGP-MAP"="red",
+                              "Pointwise KDE"="black"))+
   labs(title = "Temperature distribution by station.",
-       subtitle = "Histograms and pointwise kernel density estimators 
-       (grey for the train set, blue for the test),
-       \nSLGP MAP estimator with poorly chosen hyperparameters (red curves).")
+       subtitle = "Empirical distributions in the dataset and SLGP MAP estimator with poorly chosen hyperparameters (small value).",
+       col="Curve represented") 
 ```
 
 This time, while the model provides accurate temperature estimates at stations within the training set, it generalizes poorly to test stations. Using too small a length scale restricts the model’s spatial aggregation, limiting the reach of spatial information to a very local scope.
@@ -285,7 +298,7 @@ save(df_res, file="resultsMeteo.RData" )
 
 We can now display the resulting optimisation profile. 
 
-```{r include=FALSE}
+```{r include=FALSE, fig.cap = "Optimisation profile for the SLGP's lengthscales on the meteorological application", fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 library(scales)
 load(file="resultsMeteo.RData" )
 best_value <- range(df_res$value)
@@ -340,7 +353,7 @@ df_res %>%
 
 Using the optimal length scale hyperparameter identified in the grid search, we perform the final SLGP estimation. This provides the best compromise between local accuracy and generalization, as shown by improved prediction results at the test stations.
 
-```{r SLGPgood, fig.fullwidth=TRUE, fig.height=5,fig.pos="H", warning=FALSE, message=FALSE, eval=FALSE}
+```{r SLGPgood, warning=FALSE, message=FALSE, eval=FALSE}
 load(file="resultsMeteo.RData" )
 
 lengthscale <- as.numeric(df_res[which.min(df_res$value), 1:4])
@@ -380,18 +393,19 @@ model3MAP <- slgp(Temperature~.,
                   sigmaEstimationMethod = "heuristic",
                   seed=1,
                   opts_BasisFun = list(nFreq=250,
-                                       MatParam=5/2),
-                  opts = list(stan_chains=2, stan_iter=1000))
+                                       MatParam=5/2))
+
 save(model3, model3MAP, file="ModelOptimizedLen.RData")
+
 ```
 
-```{r SLGPgood2, fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.pos="H", warning=FALSE, message=FALSE}
+```{r SLGPgood2,, fig.cap = "A SLGP estimation with optimally chosen lengthscale (grid-search)", fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 load(file="ModelOptimizedLen.RData")
 
 predMCMC <- predictSLGP_newNode(SLGPmodel=model3,
-                                newNodes = dfGrid)
+                                newNodes = dfGrid, nDiscret=201)
 predMAP <- predictSLGP_newNode(SLGPmodel=model3MAP,
-                               newNodes = dfGrid)
+                               newNodes = dfGrid, nDiscret=201)
 predMCMC$mean_pdf <- rowMeans(predMCMC[, -c(1:4)])
 
 predMCMC <- merge(predMCMC, stations[, c(2, 4, 5, 7)]) %>%
@@ -405,92 +419,563 @@ predMCMC2 <- predMCMC[, c(1:(4+100), 1005:1008)]%>%
   mutate(name=as.numeric(substr(name, 5, 11)))
 
 plotDensities + 
-  geom_line(data = predMCMC, mapping=aes(x=Temperature, y=pdf_1),
-            col="black", lwd=0.1)+
-  geom_line(data = predMCMC, mapping=aes(x=Temperature, y=pdf_201),
-            col="black", lwd=0.1)+
-  geom_line(data = predMCMC, mapping=aes(x=Temperature, y=pdf_401),
-            col="black", lwd=0.1)+
-  geom_line(data = predMCMC, mapping=aes(x=Temperature, y=pdf_601),
-            col="black", lwd=0.1)+
-  geom_line(data = predMCMC, mapping=aes(x=Temperature, y=pdf_801),
-            col="black", lwd=0.1)+
-  geom_line(data = predMCMC, mapping=aes(x=Temperature, y=mean_pdf),
-            col="red")+
+  geom_line(data = predMAP, mapping=aes(x=Temperature, 
+                                        y=pdf_1,
+                                        col="SLGP-MAP"))+
+  scale_color_manual(values=c("SLGP-MAP"="red",
+                              "Pointwise KDE"="black"))+
   labs(title = "Temperature distribution by station.",
-       subtitle = "Histograms and pointwise kernel density estimators 
-       (grey for the train set, blue for the test),
-       \nSLGP MCMC estimators with optimally chosen hyperparameters (draws in black, mean in red).")
+       subtitle = "Empirical distributions in the dataset and SLGP MAP estimator with optimised hyperparameters.",
+       col="Curve represented") 
 ```
-## Visualising results at some stations
+## Visualising results at some stations both in and out of the training set
 
-```{r}
+```{r preparepanelplots, include=FALSE, warning=FALSE, message=FALSE}
 
 mock_df <- data.frame(x=c(rep(-1000, 3), rep(-2000, 3)),
-                      y=0, curve=rep(c("MAP estimate", "MCMC draws", "MCMC mean"), 2))
+                      y=0, curve=rep(c("SLGP-MAP", "SLGP-MCMC draws", "SLGP-MCMC mean"), 2))
 Lin <- list()
-samples$station <- X$Station
+
+
 for(i in seq(nrow(stations))){
   Lin[[i]]<-list()
-  Lin[[i]][["histogram"]] <- ggplot(X[X$Station==stations$Station[i], ])+
-    theme_bw()+
-    geom_histogram(mapping=aes(x=tre200d0,
-                               y=..density..),
-                   col="grey70", fill="grey95", linewidth=0.5, 
-                   breaks=seq(range_temp[1], range_temp[2], 2))+
-    coord_cartesian(xlim=range_temp, ylim=c(0, 0.07))+
-    xlab("Temperature value [°C]")+
-    ylab("Temperature distribution\n(marginalized over time)")+
-    ggtitle(paste0(stations$Station[i], " (", 
-                   stations$Station.height.m..a..sea.level[i],
-                   "m)")) + 
-    theme(plot.title=element_text(size=10, hjust = 0.5))
+  Lin[[i]][["histogram"]] <-   samples%>%
+    dplyr::filter(Station==stations$Station[i])%>%
+    mutate(inCantonBE2 = ifelse(inCantonBE, 
+                                "In the canton of Bern (test set)", 
+                                "Out of the canton of Bern (train set)"))%>%
+    ggplot()+  
+    geom_line(data=data.frame(x=c(1:2-1000), y=c(0, 0)),
+              mapping=aes(x=x, y=y, col="Pointwise KDE"))+
+    geom_histogram(mapping=aes(x=Temperature, y=after_stat(density), 
+                               fill=inCantonBE2),  col="white", lwd=0.2,
+                   breaks = seq(-30, 40, 2.0), alpha=0.2)+  
+    geom_histogram(data=data.frame(Temperature=seq(2)-1000,
+                                   inCantonBE2=c("In the canton of Bern (test set)", 
+                                                 "Out of the canton of Bern (train set)")),
+                   mapping=aes(x=Temperature, y=after_stat(density),
+                               fill=inCantonBE2, col="white"), 
+                   breaks = seq(-30, 40, 2.5), alpha=0.2)+
+    geom_density(mapping=aes(x=Temperature), col="black")+
+    scale_fill_manual(values=c("In the canton of Bern (test set)"="cornflowerblue", 
+                               "Out of the canton of Bern (train set)"="darkgrey"))+
+    facet_wrap(paste0(Station, " (", Altitude, "m)")~.)+
+    theme_bw() +
+    theme(legend.position = "bottom")+
+    labs(x= "Temperature value [°C]",
+         y = "Probability density",
+         fill = "Canton of the station",
+         col="Curve represented")+
+    coord_cartesian(xlim=range_temp, ylim=c(0, 0.07))
+  
+  
   ind_MAP <- predMAP$Station==stations$Station[i]
   ind_MCMC <- predMCMC$Station==stations$Station[i]
-  ind_MCMC2 <- predMCMC2$Station==stations$Station[i] & predMCMC2$name %in% c(1)
-  Lin[[i]][["data"]]<- ggplot(mock_df, mapping=aes(x=x, y=y, 
-                                                   lty=curve, col=curve, alpha=curve))+
-    coord_cartesian(xlim=range_temp, ylim=c(0, 0.07))+
-    geom_line()+
-    theme_bw()+
-    geom_histogram(data=X[X$Station==stations$Station[i], ],
-                   inherit.aes=FALSE,
-                   mapping=aes(x=tre200d0,
-                               y=..density..), col="midnightblue",  fill="lightsteelblue", 
-                   alpha=0.1,
-                   breaks=seq(range_temp[1], range_temp[2], 2))+
+  ind_MCMC2 <- predMCMC2$Station==stations$Station[i] & predMCMC2$name %in% seq(1, 101, 5)
+  Lin[[i]][["data"]] <- Lin[[i]][["histogram"]]+  
+    geom_line(data=data.frame(x=c(1:2-1000), y=c(0, 0)),
+              mapping=aes(x=x, y=y, lty="Pointwise KDE", 
+                          col="Pointwise KDE", 
+                          alpha="Pointwise KDE"))+
     geom_line(data=predMCMC2[ind_MCMC2, ],
-              mapping=aes(x=Temperature, y=value, group=name),
-                   inherit.aes=FALSE, alpha=0.5)+
-    # geom_line(data=data.frame(x=predMCMC2$Temperature[ind_MCMC2],
-    #                           y=predMCMC2$value[ind_MCMC2],
-    #                           id=predMCMC2$name[ind_MCMC2], 
-    #                           curve=mock_df$curve[2]), mapping=aes(group=id), alpha=0.5)+
-    # geom_line(data=data.frame(x=predMAP$Temperature[ind_MAP],
-    #                           y=predMAP$pdf_1[ind_MAP],
-    #                           curve=mock_df$curve[1]), lwd=1)+
-    # geom_line(data=data.frame(x=predMCMC$Temperature[ind_MCMC],
-    #                           y=predMCMC$mean_pdf[ind_MCMC],
-    #                           curve=mock_df$curve[3]), lwd=1)+
-    scale_color_manual(values=c("red", "darkgrey", "dodgerblue3"))+
-    scale_linetype_manual(values=c(1, 1, 6))+
-    scale_alpha_manual(values=c(1, 0.2, 1))+
-    xlab("Temperature value [°C]")+
-    ylab("Temperature distribution\n(marginalized over time)")+
-    ggtitle(paste0(stations$Station[i], " (", 
-                   stations$Station.height.m..a..sea.level[i],
-                   "m)")) + 
-    theme(plot.title=element_text(size=10, hjust = 0.5),
-          legend.position = "bottom",
-          legend.title=element_blank())
-  Lin[[i]][["data"]]
+              mapping=aes(x=Temperature, y=value, group=name, 
+                          lty="SLGP-MCMC draws",
+                          col="SLGP-MCMC draws",
+                          alpha="SLGP-MCMC draws"),
+              lwd=0.1)+
+    geom_line(data=predMAP[ind_MAP, ],
+              mapping=aes(x=Temperature, y=pdf_1, 
+                          lty="SLGP-MAP",
+                          col="SLGP-MAP",
+                          alpha="SLGP-MAP"))+
+    geom_line(data=predMCMC[ind_MCMC, ],
+              mapping=aes(x=Temperature, y=mean_pdf, 
+                          lty="SLGP-MCMC mean",
+                          col="SLGP-MCMC mean",
+                          alpha="SLGP-MCMC mean")) +
+    scale_color_manual(values=c("SLGP-MAP"="red",
+                                "SLGP-MCMC draws"="darkgrey", 
+                                "SLGP-MCMC mean"="dodgerblue3",
+                                "Pointwise KDE"="black"))+
+    scale_linetype_manual(values=c("SLGP-MAP"=1, 
+                                   "SLGP-MCMC draws"=1, 
+                                   "SLGP-MCMC mean"=2,
+                                   "Pointwise KDE"=1))+
+    scale_alpha_manual(values=c("SLGP-MAP"=1, 
+                                "SLGP-MCMC draws"=0.75, 
+                                "SLGP-MCMC mean"=1,
+                                "Pointwise KDE"=1))+
+    labs(lty="Curve represented",
+         col="Curve represented",
+         alpha="Curve represented")
 }
 
 ```
 
 
-####Not the priority
+```{r figmix, fig.cap = "SLGP estimation for some stations both in the training set (=stations out of the Canton of Bern) and in the test set (=stations in the Canton of Bern)", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+library(gridExtra)
+library(cowplot)
+
+
+pl1 <- Lin[[1]][["data"]]+
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_text())+
+  labs(lty=NULL,
+       col=NULL,
+       alpha=NULL,
+       fill=NULL) +
+  guides(fill="none")
+# Convert the plot to a grob
+grob_pl1 <- ggplotGrob(pl1)
+# Extract the legend part of the grob
+legend1 <- grob_pl1$grobs[[which(sapply(grob_pl1$grobs, function(x) x$name) == "guide-box")]]
+pl2 <- Lin[[1]][["data"]]+
+  theme(legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.title = element_text())+
+  labs(lty=NULL,
+       col=NULL,
+       alpha=NULL,
+       fill=NULL) +
+  guides(lty="none",
+         col="none",
+         alpha="none")
+# Convert the plot to a grob
+grob_pl2 <- ggplotGrob(pl2)
+# Extract the legend part of the grob
+legend2 <- grob_pl2$grobs[[which(sapply(grob_pl2$grobs, function(x) x$name) == "guide-box")]]
+
+ind_stations <- c(2, 4, 12, 18, 19)
+plot_map <-switzerland+
+  # theme_classic()+
+  geom_point(data=stations[ind_stations, ], mapping = aes(x=Longitude, y=Latitude)) +
+  geom_label_repel(data=stations[ind_stations, ],
+                   aes(x = Longitude, y = Latitude, label=Station),
+                   size=3, alpha=0.9, 
+                   point.padding = 0., 
+                   nudge_x = .25,
+                   nudge_y = .25,
+                   segment.curvature = -1e-20)+
+  ggtitle("Stations location.") + 
+  theme(plot.title=element_text(size=10, hjust = 0.5))
+
+plot_grid <- grid.arrange(plot_map, 
+                          Lin[[19]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[2]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[4]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[18]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[12]][["data"]]+ 
+                            theme(legend.position="none"),
+                          legend1,
+                          legend2,
+                          ncol=3, nrow = 4, 
+                          widths = c(3, 3, 3), heights = c(3, 3, 0.4, 0.4),
+                          layout_matrix = rbind(c(2, 1, 3),
+                                                c(4, 5, 6),
+                                                c(7, 7, 7),
+                                                c(8, 8, 8)))
+plot(plot_grid)
+ggsave(plot_grid, file="./Figures/grid_mixBE.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_mixBE.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
+
+```
+
+## Visualising results at some stations both out of the training set
+```{r figout, fig.cap = "SLGP estimation for some other stations in the training set (=stations out of the Canton of Bern).", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+
+ind_stations <- c(3, 28, 11, 13, 15)
+plot_map <-switzerland+
+  # theme_classic()+
+  geom_point(data=stations[ind_stations, ], mapping = aes(x=Longitude, y=Latitude)) +
+  geom_label_repel(data=stations[ind_stations, ],
+                   aes(x = Longitude, y = Latitude, label=Station),
+                   size=3, alpha=0.9, 
+                   point.padding = 0.5, 
+                   box.padding = 0.5,    
+                   segment.curvature = -1e-20)+
+  ggtitle("Stations location.") + 
+  theme(plot.title=element_text(size=10, hjust = 0.5))
+
+plot_grid <- grid.arrange(plot_map, 
+                          Lin[[3]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[28]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[13]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[11]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[15]][["data"]]+ 
+                            theme(legend.position="none"),
+                          legend1,
+                          legend2,
+                          ncol=3, nrow = 4, 
+                          widths = c(3, 3, 3), heights = c(3, 3, 0.4, 0.4),
+                          layout_matrix = rbind(c(2, 1, 3),
+                                                c(4, 5, 6),
+                                                c(7, 7, 7),
+                                                c(8, 8, 8)))
+plot(plot_grid)
+ggsave(plot_grid, file="./Figures/grid_outofBE.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
+
+```
+
+```{r figout2, fig.cap = "SLGP estimation for some other stations in the training set (=stations out of the Canton of Bern).", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+
+ind_stations <- c(5, 29, 14, 25, 24)
+plot_map <-switzerland+
+  # theme_classic()+
+  geom_point(data=stations[ind_stations, ], mapping = aes(x=Longitude, y=Latitude)) +
+  geom_label_repel(data=stations[ind_stations, ],
+                   aes(x = Longitude, y = Latitude, label=Station),
+                   size=3, alpha=0.9, 
+                   point.padding = 0.5, 
+                   box.padding = 0.5,    
+                   segment.curvature = -1e-20)+
+  ggtitle("Stations location.") + 
+  theme(plot.title=element_text(size=10, hjust = 0.5))
+
+plot_grid <- grid.arrange(plot_map, 
+                          Lin[[5]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[29]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[14]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[25]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[24]][["data"]]+ 
+                            theme(legend.position="none"),
+                          legend1,
+                          legend2,
+                          ncol=3, nrow = 4, 
+                          widths = c(3, 3, 3), heights = c(3, 3, 0.4, 0.4),
+                          layout_matrix = rbind(c(2, 1, 3),
+                                                c(4, 5, 6),
+                                                c(7, 7, 7),
+                                                c(8, 8, 8)))
+plot(plot_grid)
+ggsave(plot_grid, file="./Figures/grid_outofBE2.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE2.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
+
+```
+
+```{r figout3, fig.cap = "SLGP estimation for some other stations in the training set (=stations out of the Canton of Bern).", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+
+ind_stations <- c(7, 23, 6, 10, 26)
+plot_map <-switzerland+
+  # theme_classic()+
+  geom_point(data=stations[ind_stations, ], mapping = aes(x=Longitude, y=Latitude)) +
+  geom_label_repel(data=stations[ind_stations, ],
+                   aes(x = Longitude, y = Latitude, label=Station),
+                   size=3, alpha=0.9, 
+                   point.padding = 0.5, 
+                   box.padding = 0.5,    
+                   segment.curvature = -1e-20)+
+  ggtitle("Stations location.") + 
+  theme(plot.title=element_text(size=10, hjust = 0.5))
+
+plot_grid <- grid.arrange(plot_map, 
+                          Lin[[7]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[23]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[6]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[10]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[26]][["data"]]+ 
+                            theme(legend.position="none"),
+                          legend1,
+                          legend2,
+                          ncol=3, nrow = 4, 
+                          widths = c(3, 3, 3), heights = c(3, 3, 0.4, 0.4),
+                          layout_matrix = rbind(c(2, 1, 3),
+                                                c(4, 5, 6),
+                                                c(7, 7, 7),
+                                                c(8, 8, 8)))
+plot(plot_grid)
+ggsave(plot_grid, file="./Figures/grid_outofBE3.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE3.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
+
+```
+
+```{r figout4, fig.cap = "SLGP estimation for some other stations in the training set (=stations out of the Canton of Bern).", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+
+ind_stations <- c(21, 9, 27, 20, 16)
+plot_map <-switzerland+
+  # theme_classic()+
+  geom_point(data=stations[ind_stations, ], mapping = aes(x=Longitude, y=Latitude)) +
+  geom_label_repel(data=stations[ind_stations, ],
+                   aes(x = Longitude, y = Latitude, label=Station),
+                   size=3, alpha=0.9, 
+                   point.padding = 0.5, 
+                   box.padding = 0.5,    
+                   segment.curvature = -1e-20)+
+  ggtitle("Stations location.") + 
+  theme(plot.title=element_text(size=10, hjust = 0.5))
+
+plot_grid <- grid.arrange(plot_map, 
+                          Lin[[21]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[9]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[27]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[20]][["data"]]+ 
+                            theme(legend.position="none"),
+                          Lin[[16]][["data"]]+ 
+                            theme(legend.position="none"),
+                          legend1,
+                          legend2,
+                          ncol=3, nrow = 4, 
+                          widths = c(3, 3, 3), heights = c(3, 3, 0.4, 0.4),
+                          layout_matrix = rbind(c(2, 1, 3),
+                                                c(4, 5, 6),
+                                                c(7, 7, 7),
+                                                c(8, 8, 8)))
+plot(plot_grid)
+ggsave(plot_grid, file="./Figures/grid_outofBE4.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE4.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
+
+```
+
+
+```{r figout5, fig.cap = "SLGP estimation for some other stations in the training set (=stations out of the Canton of Bern).", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+library(grid)  # For nullGrob
+
+ind_stations <- c(17, 1, 22, 8)
+plot_map <-switzerland+
+  # theme_classic()+
+  geom_point(data=stations[ind_stations, ], mapping = aes(x=Longitude, y=Latitude)) +
+  geom_label_repel(data=stations[ind_stations, ],
+                   aes(x = Longitude, y = Latitude, label=Station),
+                   size=3, alpha=0.9, 
+                   point.padding = 0.5, 
+                   box.padding = 0.5,    
+                   segment.curvature = -1e-20)+
+  ggtitle("Stations location.") + 
+  theme(plot.title=element_text(size=10, hjust = 0.5))
+
+plot_grid <- grid.arrange(plot_map, 
+                          Lin[[17]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[22]][["data"]]+ 
+                            theme(legend.position="none"), 
+                          Lin[[1]][["data"]]+ 
+                            theme(legend.position="none"),
+                          nullGrob(),
+                          Lin[[8]][["data"]]+ 
+                            theme(legend.position="none"),
+                          legend1,
+                          legend2,
+                          ncol=3, nrow = 4, 
+                          widths = c(3, 3, 3), heights = c(3, 3, 0.4, 0.4),
+                          layout_matrix = rbind(c(2, 1, 3),
+                                                c(4, 5, 6),
+                                                c(7, 7, 7),
+                                                c(8, 8, 8)))
+plot(plot_grid)
+ggsave(plot_grid, file="./Figures/grid_outofBE5.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE5.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
+
+```
+# Leveraging SLGP estimators for complex inference
+
+Predict the MAP estimator over all of Switzerland.
+
+```{r eval=FALSE}
+df <- topography
+colnames(df) <- c("Longitude", "Latitude", "Altitude")
+
+disc_long <- 201/diff(range(df$Longitude))
+disc_lat <- 201/diff(range(df$Latitude))
+df <- df %>%
+  mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
+         Latitude=round(Latitude*(disc_lat-1))/(disc_lat-1))%>%
+  group_by(Longitude, Latitude) %>%
+  summarise(Altitude=median(Altitude), .groups="keep") %>%
+  data.frame() 
+df2 <- expand.grid(seq(range_temp[1], range_temp[2],, 141), seq(nrow(df)))
+df2 <- cbind(df[df2$Var2, ], df2$Var1)
+colnames(df2)[4] <- "Temperature"
+
+dfSwissMAP<- data.frame()
+rep <- 47*5
+n <- nrow(df2)/rep
+# Start time
+start_time <- Sys.time()
+for(i in seq(rep)){
+  # Time at the start of each iteration
+  iter_start_time <- Sys.time()
+  cat(i, "\n")
+  temp <- predictSLGP_newNode(SLGPmodel=model3MAP,
+                              newNodes = df2[1:n  + (i-1)*n, ],
+                              nDiscret=101)
+  dfSwissMAP <- rbind(dfSwissMAP, temp)
+  
+  # Calculate elapsed time since the beginning in minutes
+  elapsed_time <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
+  iter_time <- as.numeric(difftime(Sys.time(), iter_start_time, units = "mins"))
+  
+  if(i%%5==0){
+    cat("Saved just in case at ", i%/%5, "/47\n")
+    save(dfSwissMAP, file="predictionInSwitzerlandMAP.RData")
+  }
+  # Print elapsed time and iteration time
+  cat("Total elapsed time:", elapsed_time, 
+      "mins\nTime for this iteration:", iter_time, "mins\n\n")
+}
+save(dfSwissMAP, file="predictionInSwitzerlandMAP.RData")
+```
+
+Predict the MCMC estimations over all of Switzerland.
+```{r eval=FALSE}
+df <- topography
+colnames(df) <- c("Longitude", "Latitude", "Altitude")
+
+disc_long <- 101/diff(range(df$Longitude))
+disc_lat <- 101/diff(range(df$Latitude))
+df <- df %>%
+  mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
+         Latitude=round(Latitude*(disc_lat-1))/(disc_lat-1))%>%
+  group_by(Longitude, Latitude) %>%
+  summarise(Altitude=median(Altitude), .groups="keep") %>%
+  data.frame() 
+df2 <- expand.grid(seq(range_temp[1], range_temp[2],, 141), seq(nrow(df)))
+df2 <- cbind(df[df2$Var2, ], df2$Var1)
+colnames(df2)[4] <- "Temperature"
+
+dfSwissMCMC <- data.frame()
+rep <- 32*3
+n <- nrow(df2)/rep
+# Start time
+start_time <- Sys.time()
+for(i in seq(rep)){
+  # Time at the start of each iteration
+  iter_start_time <- Sys.time()
+  cat(i, "\n")
+  temp <- predictSLGP_newNode(SLGPmodel=model3,
+                              newNodes = df2[1:n  + (i-1)*n, ],
+                              nDiscret=201)
+  dfSwissMCMC <- rbind(dfSwissMCMC, temp)
+  
+  # Calculate elapsed time since the beginning in minutes
+  elapsed_time <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
+  iter_time <- as.numeric(difftime(Sys.time(), iter_start_time, units = "mins"))
+  
+  if(i%%8==0){
+    cat("Saved just in case at ", i%/%8, "/12\n")
+    save(dfSwissMCMC, file="predictionInSwitzerlandMCMC.RData")
+  }
+  # Print elapsed time and iteration time
+  cat("Total elapsed time:", elapsed_time, 
+      "mins\nTime for this iteration:", iter_time, "mins\n\n")
+}
+save(dfSwissMCMC, file="predictionInSwitzerlandMCMC.RData")
+
+```
+
+... And now, let us use these!
+
+## Temperature-Based Localisation in Switzerland: A Proof of Concept.
+
+In this proof of concept, we demonstrate an "inverse problem" approach: given a temperature observation, we use the MAP (Maximum A Posteriori) estimator of the Spatial Logistic Gaussian Process (SLGP) model to identify likely regions in Switzerland where this temperature could have been observed. This allows us to infer potential locations based on specific temperature measurements.
+
+```{r plotInvPb, fig.cap = "An inverse problem solved with SLGP modelling: temeprature based localisation", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+load(file="predictionInSwitzerlandMAP.RData")
+plots <- dfSwissMAP %>%
+  dplyr::filter(Temperature %in% c(-15, 5, 25)) %>%
+  group_by(Temperature) %>%
+  mutate(pdf_1 = pdf_1 / mean(pdf_1)) %>%
+  split(.$Temperature) %>%
+  lapply(function(data) {
+    ggplot(data) +
+      geom_raster(mapping = aes(x = Longitude, y = Latitude, fill = pdf_1), alpha = 0.5) +
+      theme_bw() +
+      scale_fill_viridis(option = "viridis", direction = +1,
+                         name = "Probability density",
+                         guide = guide_colorbar(
+                           direction = "horizontal",
+                           barheight = unit(2, units = "mm"),
+                           barwidth = unit(50, units = "mm"),
+                           draw.ulim = FALSE,
+                           title.position = 'top',
+                           title.hjust = 0.5,
+                           label.hjust = 0.5
+                         )) +
+      labs(
+        title = paste0("Probability of the chunk\nknowing the temperature is ", 
+                       unique(data$Temperature), "°C"),
+        x = "Longitude",
+        y = "Latitude"
+      ) +
+      theme(
+        panel.grid = element_blank(),     # Remove grid lines
+        axis.ticks.x = element_blank(),   # Remove x-axis ticks
+        axis.text.x = element_blank(),    # Remove x-axis text
+        axis.title.x = element_blank(),   # Remove x-axis label
+        axis.ticks.y = element_blank(),   # Remove y-axis ticks
+        axis.text.y = element_blank(),    # Remove y-axis text
+        axis.title.y = element_blank(),   # Remove y-axis label
+        legend.position = "bottom")
+  })
+
+# Arrange plots with cowplot
+plot_grid(plotlist = plots, ncol = 3, align = 'hv')
+```
+
+This approach is intuitively meaningful when considering Switzerland's diverse geography:
+
+  * *Cold Temperatures (e.g., -15°C):* The SLGP modelling predominantly identifies locations in the Alps and at high altitudes, where cold conditions are common due to elevation and geographical isolation. This aligns with our expectation, as the high Alpine summits and mountainous regions experience colder temperatures.
+
+  * *Moderate Temperatures (e.g., 5°C):* The SLGP MAP estimator shows a broader range of possible locations, including the Swiss Plateau and parts of Ticino. Additionally, moderate temperatures are also observed in mountainous regions, provided they aren’t at very high altitudes.
+
+  * *Warm Temperatures (e.g., 25°C):* The model highlights low-altitude areas like the Swiss Plateau and valleys in Ticino as likely locations for warmer temperatures.  The southern slopes of the Alps, such as those in Ticino, experience a warmer climate due to the influence of southern climate patterns. This analysis rules out higher mountainous areas, as such temperatures are unusual at high elevations.
+
+This approach offers a sight into the potential of SLGP for solving stochastic inverse problems. 
+
+## Probabilistic prediction of quantities of interest
+
 ```{r}
+
+disc_long <- 101/diff(range(df$Longitude))
+disc_lat <- 101/diff(range(df$Latitude))
+
+stations_discretized <- stations %>%
+  mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
+         Latitude=round(Latitude*(disc_lat-1))/(disc_lat-1))%>%
+  dplyr::select(Latitude, Longitude, Station) %>%
+  data.frame() 
+
+df_plot_meteo2 <- merge(dfSwissMCMC, stations_discretized, 
+                        by=c("Latitude", "Longitude"), all.x=TRUE)
+df_plot_meteo2$subset2 <- abs(df_plot_meteo2$x1+1.125*df_plot_meteo2$x2-0.86)<=0.03
+df_plot_meteo2$subset1 <- abs(df_plot_meteo2$x1+1.125*df_plot_meteo2$x2-0.86)<=0.005
+```
+
+
+```{r eval=FALSE, include=FALSE}
+load(file="predictionInSwitzerlandMCMC.RData")
 
 library(readxl)
 library(raster)
@@ -542,177 +1027,6 @@ switzerland <- ggplot() +
                      ))+ 
   xlab("Longitude") + ylab("Latitude") 
 switzerland
-
-Lin <- list()
-samples$station <- X$Station
-for(i in seq(nrow(stations))){
-  Lin[[i]]<-list()
-  Lin[[i]][["histogram"]] <- ggplot(X[X$Station==stations$Station[i], ])+
-    theme_bw()+
-    geom_histogram(mapping=aes(x=tre200d0,
-                               y=..density..),
-                   col="grey70", fill="grey95", size=0.5, 
-                   breaks=seq(range_temp[1], range_temp[2], 2))+
-    coord_cartesian(xlim=range_temp, ylim=c(0, 0.07))+
-    xlab("Temperature value [°C]")+
-    ylab("Temperature distribution\n(marginalized over time)")+
-    ggtitle(paste0(stations$Station[i], " (", 
-                   stations$Station.height.m..a..sea.level[i],
-                   "m)")) + 
-    theme(plot.title=element_text(size=10, hjust = 0.5))
-  ind_MAP <- df_MAP$Station==stations$Station[i]
-  ind_MCMC <- df_MCMC$Station==stations$Station[i]
-  ind_MCMC2 <- df_MCMC_rest$Station==stations$Station[i] & df_MCMC_rest$name %in% seq(1, 100, 5)
-  Lin[[i]][["data"]]<- ggplot(mock_df, mapping=aes(x=x, y=y, lty=curve, col=curve, alpha=curve))+
-    geom_line()+
-    theme_bw()+
-    geom_histogram(data=X[X$Station==stations$Station[i], ],
-                   inherit.aes=FALSE,
-                   mapping=aes(x=tre200d0,
-                               y=..density..), col="midnightblue",  fill="lightsteelblue", 
-                   alpha=0.1,
-                   breaks=seq(range_temp[1], range_temp[2], 2))+
-    geom_line(data=data.frame(x=df_MCMC_rest$t[ind_MCMC2],
-                              y=df_MCMC_rest$value[ind_MCMC2],
-                              id=df_MCMC_rest$name[ind_MCMC2], 
-                              curve=mock_df$curve[2]), mapping=aes(group=id), alpha=0.5)+
-    geom_line(data=data.frame(x=df_MAP$t[ind_MAP]*diff(range_temp)+range_temp[1],
-                              y=df_MAP$pdf[ind_MAP]/diff(range_temp),
-                              curve=mock_df$curve[1]), lwd=1)+
-    geom_line(data=data.frame(x=df_MCMC$t[ind_MCMC]*diff(range_temp)+range_temp[1],
-                              y=df_MCMC$mean_pdf[ind_MCMC]/diff(range_temp),
-                              curve=mock_df$curve[3]), lwd=1)+
-    scale_color_manual(values=c("red", "darkgrey", "dodgerblue3"))+
-    scale_linetype_manual(values=c(1, 1, 6))+
-    scale_alpha_manual(values=c(1, 0.2, 1))+
-    coord_cartesian(xlim=range_temp, ylim=c(0, 0.07))+
-    xlab("Temperature value [°C]")+
-    ylab("Temperature distribution\n(marginalized over time)")+
-    ggtitle(paste0(stations$Station[i], " (", 
-                   stations$Station.height.m..a..sea.level[i],
-                   "m)")) + 
-    theme(plot.title=element_text(size=10, hjust = 0.5),
-          legend.position = "bottom",
-          legend.title=element_blank())
-}
-
-ind_first_image <- c(3, 24, 13)
-ind_stations <- c(3, 24, 13, 15, 27)
-ind_in_be <- c(4, 12, 18)
-plot_map <-switzerland+
-  # theme_classic()+
-  geom_point(data=stations[ind_first_image, ], mapping = aes(x=Longitude, y=Latitude)) +
-  geom_label_repel(data=stations[ind_first_image, ],
-                   aes(x = Longitude, y = Latitude, label=Station),
-                   size=3, alpha=0.9, 
-                   point.padding = 0., 
-                   nudge_x = .25,
-                   nudge_y = .25,
-                   segment.curvature = -1e-20)+
-  ggtitle("Stations location.") + 
-  theme(plot.title=element_text(size=10, hjust = 0.5))
-plot_map2 <-switzerland+
-  # theme_classic()+
-  geom_point(data=stations[ind_in_be, ], mapping = aes(x=Longitude, y=Latitude)) +
-  geom_label_repel(data=stations[ind_in_be, ],
-                   aes(x = Longitude, y = Latitude, label=Station),
-                   size=3, alpha=0.9, 
-                   point.padding = 0., 
-                   nudge_x = .25,
-                   nudge_y = .25,
-                   segment.curvature = -1e-20)+
-  ggtitle("Stations location.") + 
-  theme(plot.title=element_text(size=10, hjust = 0.5))
-plot_map3 <-switzerland+
-  # theme_classic()+
-  geom_point(data=stations[ind_stations, ], mapping = aes(x=Longitude, y=Latitude)) +
-  geom_label_repel(data=stations[ind_stations, ],
-                   aes(x = Longitude, y = Latitude, label=Station),
-                   size=3, alpha=0.9, 
-                   point.padding = 0., 
-                   nudge_x = .25,
-                   nudge_y = .25,
-                   segment.curvature = -1e-20)+
-  ggtitle("Stations location.") + 
-  theme(plot.title=element_text(size=10, hjust = 0.5))
-
-plot_grid1 <- grid.arrange(plot_map, 
-                           Lin[[3]][["histogram"]], 
-                           Lin[[13]][["histogram"]], 
-                           Lin[[24]][["histogram"]],
-                           ncol=2, nrow = 2)
-ggsave(plot_grid1, file="./Figures/grid_with_data_noSLGP2.png", 
-       width=8, height=2/3*8, scale=1)
-ggsave(plot_grid1, file="./Figures/grid_with_data_noSLGP2.pdf", 
-       width=8, height=2/3*8, scale=1)
-
-legend1 <- get_legend(Lin[[1]][["data"]]+
-                        theme(legend.title = element_text())+
-                        labs(lty="Curve represented",
-                             col="Curve represented",
-                             alpha="Curve represented"))
-legend2 <- get_legend(Lin[[1]][["data"]]+
-                        theme(legend.position = "left",
-                              legend.direction = "vertical",
-                              legend.title = element_text())+
-                        labs(lty="Curve represented",
-                             col="Curve represented",
-                             alpha="Curve represented"))
-plot_grid2 <- grid.arrange(plot_map2, 
-                           Lin[[4]][["data"]]+ 
-                             theme(legend.position="none"), 
-                           Lin[[12]][["data"]]+ 
-                             theme(legend.position="none"), 
-                           Lin[[18]][["data"]]+ 
-                             theme(legend.position="none"),
-                           legend2,
-                           ncol=3, nrow = 2, 
-                           widths = c(3, 3, 1.8), heights = c(3, 3),
-                           layout_matrix = rbind(c(1, 2, 5),
-                                                 c(3, 4, 5)))
-ggsave(plot_grid2, file="./Figures/grid_without_data2.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-ggsave(plot_grid2, file="./Figures/grid_without_data2.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
-plot_grid2 <- grid.arrange(plot_map2, 
-                           Lin[[4]][["data"]]+ 
-                             theme(legend.position="none"), 
-                           Lin[[12]][["data"]]+ 
-                             theme(legend.position="none"), 
-                           Lin[[18]][["data"]]+ 
-                             theme(legend.position="none"),
-                           legend1,
-                           ncol=3, nrow = 3, 
-                           widths = c(3, 3, 3), heights = c(3, 3, 0.8),
-                           layout_matrix = rbind(c(NA, 1, NA),
-                                                 c(2, 3, 4),
-                                                 c(5, 5, 5)))
-ggsave(plot_grid2, file="./Figures/grid_without_data2_2.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-ggsave(plot_grid2, file="./Figures/grid_without_data2_2.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
-plot_grid3 <- grid.arrange(plot_map3, 
-                           Lin[[3]][["data"]]+ 
-                             theme(legend.position="none"), 
-                           Lin[[27]][["data"]]+ 
-                             theme(legend.position="none"), 
-                           Lin[[13]][["data"]]+ 
-                             theme(legend.position="none"),
-                           Lin[[24]][["data"]]+ 
-                             theme(legend.position="none"),
-                           Lin[[15]][["data"]]+ 
-                             theme(legend.position="none"),
-                           legend1,
-                           ncol=3, nrow = 3, 
-                           widths = c(3, 3, 3), heights = c(3, 3, 0.8),
-                           layout_matrix = rbind(c(2, 1, 3),
-                                                 c(4, 5, 6),
-                                                 c(7, 7, 7)))
-ggsave(plot_grid3, file="./Figures/grid_stbernard22.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-
-ggsave(plot_grid3, file="./Figures/grid_stbernard22.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
 
 
 disc_long <- 101

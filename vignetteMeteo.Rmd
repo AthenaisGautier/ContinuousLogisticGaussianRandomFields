@@ -807,8 +807,8 @@ Predict the MAP estimator over all of Switzerland.
 df <- topography
 colnames(df) <- c("Longitude", "Latitude", "Altitude")
 
-disc_long <- 201/diff(range(df$Longitude))
-disc_lat <- 201/diff(range(df$Latitude))
+disc_long <- 201/diff(range_long)
+disc_lat <- 201/diff(range_lat)
 df <- df %>%
   mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
          Latitude=round(Latitude*(disc_lat-1))/(disc_lat-1))%>%
@@ -850,11 +850,12 @@ save(dfSwissMAP, file="predictionInSwitzerlandMAP.RData")
 
 Predict the MCMC estimations over all of Switzerland.
 ```{r eval=FALSE}
+
 df <- topography
 colnames(df) <- c("Longitude", "Latitude", "Altitude")
 
-disc_long <- 101/diff(range(df$Longitude))
-disc_lat <- 101/diff(range(df$Latitude))
+disc_long <- 101/diff(range_long)
+disc_lat <- 101/diff(range_lat)
 df <- df %>%
   mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
          Latitude=round(Latitude*(disc_lat-1))/(disc_lat-1))%>%
@@ -957,9 +958,10 @@ This approach offers a sight into the potential of SLGP for solving stochastic i
 ## Probabilistic prediction of quantities of interest
 
 ```{r}
+load(file="predictionInSwitzerlandMCMC.RData")
 
-disc_long <- 101/diff(range(df$Longitude))
-disc_lat <- 101/diff(range(df$Latitude))
+disc_long <- 101/diff(range_long)
+disc_lat <- 101/diff(range_lat)
 
 stations_discretized <- stations %>%
   mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
@@ -969,9 +971,164 @@ stations_discretized <- stations %>%
 
 df_plot_meteo2 <- merge(dfSwissMCMC, stations_discretized, 
                         by=c("Latitude", "Longitude"), all.x=TRUE)
-df_plot_meteo2$subset2 <- abs(df_plot_meteo2$x1+1.125*df_plot_meteo2$x2-0.86)<=0.03
-df_plot_meteo2$subset1 <- abs(df_plot_meteo2$x1+1.125*df_plot_meteo2$x2-0.86)<=0.005
+unique(df_plot_meteo2$Station)
+
+gc()
+df_plot_meteo2$subset2 <- abs((df_plot_meteo2$Latitude-range_lat[1])/diff(range_lat)+
+                                1.125*(df_plot_meteo2$Longitude-range_long[1])/
+                                diff(range_long)-0.86)<=0.03
+df_plot_meteo2$subset1 <- abs((df_plot_meteo2$Latitude-range_lat[1])/diff(range_lat)+
+                                1.125*(df_plot_meteo2$Longitude-range_long[1])/
+                                diff(range_long)-0.86)<=0.005
+
+plotmap <- switzerland +
+  geom_segment(aes(x=0.175*diff(range_long)+range_long[1],
+                   xend=0.68*diff(range_long)+range_long[1],
+                   y=47.12,
+                   yend=46.01), col="black", linewidth=2)+
+  geom_segment(aes(x=0.175*diff(range_long)+range_long[1],
+                   xend=0.68*diff(range_long)+range_long[1],
+                   y=47.12,
+                   yend=46.01), col="grey", lty=1)
+plot(plotmap)
+
 ```
+
+```{r}
+# Extract the chunks on the slice and project them in 1D
+df_plot_meteo2 <- subset(df_plot_meteo2, df_plot_meteo2$subset2)
+df_plot_meteo2$Latitude <- (df_plot_meteo2$Latitude - range_lat[1])/diff(range_lat)
+df_plot_meteo2$Longitude <- (df_plot_meteo2$Longitude - range_long[1])/diff(range_long)
+# line y=-1.125 x+ 0.86
+library(StereoMorph)
+orth_vect <- orthogonalProjectionToLine(df_plot_meteo2[, c(1:2)], l1 = c(0, 0.86), 
+                                        l2 = c(1, 0.86-1.125))
+df_plot_meteo2$x1proj <- orth_vect[, 1]
+df_plot_meteo2$x2proj <- orth_vect[, 2]
+df_plot_meteo2$dproj <- sqrt((df_plot_meteo2$x1-df_plot_meteo2$x1proj)^2+
+                               (df_plot_meteo2$x2-df_plot_meteo2$x2proj)^2)
+df_plot_meteo2<- df_plot_meteo2%>%
+  mutate(place_on_line = 1-(x1proj-min(x1proj))/diff(range(x1proj)))%>%
+  group_by(dproj)
+
+df_plot_meteo2 <-  df_plot_meteo2%>%
+  dplyr::select(-x1proj, -x2proj)%>%
+  mutate(Latitude=Latitude*diff(range_lat)+range_lat[1],
+         Longitude=Longitude*diff(range_long)+range_long[1])%>%
+  pivot_longer(-c("Latitude", "Longitude", "Altitude", "Temperature", "place_on_line", "dproj","subset1", "subset2", "Station"))%>%
+  mutate(simu=substr(name, 5, 10),
+         valuepdf=value) %>%
+  group_by(Latitude, Longitude, Altitude, simu)%>%
+  mutate(valuecdf=cumsum(value))%>%
+  mutate(valuecdf=valuecdf-min(valuecdf))%>%
+  mutate(valuecdf=valuecdf/max(valuecdf))%>%
+  ungroup()%>%
+  dplyr::select(-c("name", "value"))%>%
+  data.frame()
+
+df_plot_meteo2_summary <- df_plot_meteo2 %>%
+  group_by(Latitude, Longitude, Altitude, simu)%>%
+  summarise(place_on_line=mean(place_on_line),
+            subset1 = median(subset1),
+            subset2 = median(subset2),
+            dproj = mean(dproj),
+            mean = mean(Temperature*valuepdf),
+            Station=ifelse(all(is.na(Station)), NA, unique(na.omit(Station))),
+            q10 = Temperature[which.min(abs(valuecdf-0.1))],
+            q20 = Temperature[which.min(abs(valuecdf-0.2))],
+            q30 = Temperature[which.min(abs(valuecdf-0.3))],
+            q40 = Temperature[which.min(abs(valuecdf-0.4))],
+            q50 = Temperature[which.min(abs(valuecdf-0.5))],
+            q60 = Temperature[which.min(abs(valuecdf-0.6))],
+            q70 = Temperature[which.min(abs(valuecdf-0.7))],
+            q80 = Temperature[which.min(abs(valuecdf-0.8))],
+            q90 = Temperature[which.min(abs(valuecdf-0.9))],
+            .groups="keep")%>%
+  ungroup()%>%
+  data.frame()
+
+# Select the stations on this slice
+stations_other <- subset(df_plot_meteo2_summary,
+                         !is.na(df_plot_meteo2$Station))
+stations_other <- dplyr::select(stations_other, -starts_with("pdf"))
+stations_other<- stations_other%>%
+  mutate(Latitude=Latitude*diff(range_lat)+range_lat[1],
+         Longitude=Longitude*diff(range_long)+range_long[1])
+```
+
+We visualise the topographic profile of this slice, and the location of the stations alongside it.
+
+```{r}
+plot1 <- 
+  df_plot_meteo2_summary %>%
+  filter(subset1==1)%>%
+  dplyr::select(-mean)%>%
+  pivot_longer(starts_with("q"))%>%
+  mutate(name=paste0(substr(name, 2, 3), "%"))%>%
+  rename(`Quantile level`=name)%>%
+  group_by(Latitude, Longitude, Altitude, place_on_line, `Quantile level`)%>%
+  summarise(mean=mean(value),
+            qL=quantile(value, 0.1),
+            qH = quantile(value, 0.9),
+            .groups="keep")%>%
+  ggplot(aes(x=place_on_line, y=Altitude))+
+  geom_ribbon(mapping=aes(ymin=0, ymax=Altitude), alpha=0.2, col="black", lty=1)+
+
+  geom_label_repel(data=stations_other,
+                   aes(label=Station),
+                   size=3, alpha=0.9, 
+                   point.padding = 0.5, 
+                   box.padding = 0.5,    
+                   segment.curvature = -1e-20)+
+  theme_bw()+
+  theme(legend.position="bottom", 
+        legend.box = "horizontal")+
+  ylab("Elevation above sea level [m]")+
+  xlab("Position alongside the slice")
+plot1
+```
+
+```{r}
+plot2 <- 
+  df_plot_meteo2_summary %>%
+  filter(subset1==1)%>%
+  dplyr::select(-mean)%>%
+  pivot_longer(starts_with("q"))%>%
+  mutate(name=paste0(substr(name, 2, 3), "%"))%>%
+  rename(`Quantile level`=name)%>%
+  group_by(Latitude, Longitude, Altitude, place_on_line, `Quantile level`)%>%
+  summarise(mean=mean(value),
+            qL=quantile(value, 0.1),
+            qH = quantile(value, 0.9),
+            .groups="keep")%>%
+  ggplot(aes(x=place_on_line, col=`Quantile level`, fill=`Quantile level`))+
+  geom_line(mapping=aes(y=mean))+
+  geom_ribbon(mapping=aes(ymin=qL, ymax=qH), alpha=0.2, lty=2)+
+  theme_bw()+
+  theme(legend.position="bottom", 
+        legend.box = "horizontal")+
+  ylab("Temperature value [°C]")+
+  xlab("Position alongside the slice")+
+  geom_vline(xintercept =stations_other$place_on_line+
+               c(-0.02, +0.01, +0.02, +0.01, 0, 0), lty=2)+
+  geom_label(data=stations_other, mapping=aes(label=Station, 
+                                              y=c(-22, -17, -22,-12,-17,-22), x=place_on_line), inherit.aes = FALSE)
+plot2 
+
+
+plot_grid <- grid.arrange(plotmap+ theme(aspect.ratio=0.5), 
+                          plot1, plot2,
+                          ncol=2, nrow = 2, 
+                          widths = c(3, 3), heights = c(3, 4),
+                          layout_matrix = rbind(c(1, 1),
+                                                c(2, 3)),
+                          respect=FALSE)
+ggsave(plot_grid, file="./Figures/slice_switzerland.png", 
+       width=9.5, height=5.5, scale=1.1)
+ggsave(plot_grid, file="./Figures/slice_switzerland.pdf", 
+       width=9.5, height=5.5, scale=1.1)
+```
+
 
 
 ```{r eval=FALSE, include=FALSE}

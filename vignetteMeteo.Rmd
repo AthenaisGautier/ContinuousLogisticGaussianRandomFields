@@ -110,8 +110,8 @@ plot_map <-switzerland+
                    segment.curvature = -1e-20)+
   theme(plot.title=element_text(size=10, hjust = 0.5))
 plot_map
-ggsave("./figures/map_switzerland.png", width=8, height=4.5)
-ggsave("./figures/map_switzerland.pdf", width=8, height=4.5)
+# ggsave("./figures/map_switzerland.png", width=8, height=4.5)
+# ggsave("./figures/map_switzerland.pdf", width=8, height=4.5)
 ```
 
 To ensure a smooth modeling process, we prepare the dataset by renaming variables for clarity and storing their respective value ranges. This step facilitates easier handling of variables in subsequent modeling steps.
@@ -119,8 +119,8 @@ To ensure a smooth modeling process, we prepare the dataset by renaming variable
 ```{r startinit}
 #Ready to normalise
 range_temp <- c(-30, 40)
-range_lat <- range(world_map$lat)
-range_long <- range(world_map$long)
+range_lat <- range(topography$lat)
+range_long <- range(topography$long)
 range_height <- c(0, 4810)
 
 #Extract the relevant columns
@@ -581,10 +581,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-ggsave(plot_grid, file="./Figures/grid_mixBE.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-ggsave(plot_grid, file="./Figures/grid_mixBE.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_mixBE.png", 
+#        width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_mixBE.pdf", 
+#        width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -624,10 +624,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-ggsave(plot_grid, file="./Figures/grid_outofBE.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-ggsave(plot_grid, file="./Figures/grid_outofBE.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE.png", 
+#        width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE.pdf", 
+#        width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -666,10 +666,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-ggsave(plot_grid, file="./Figures/grid_outofBE2.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-ggsave(plot_grid, file="./Figures/grid_outofBE2.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE2.png", 
+#        width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE2.pdf", 
+#        width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -708,10 +708,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-ggsave(plot_grid, file="./Figures/grid_outofBE3.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-ggsave(plot_grid, file="./Figures/grid_outofBE3.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE3.png", 
+#        width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE3.pdf", 
+#        width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -750,10 +750,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-ggsave(plot_grid, file="./Figures/grid_outofBE4.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-ggsave(plot_grid, file="./Figures/grid_outofBE4.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE4.png", 
+#        width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE4.pdf", 
+#        width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -793,34 +793,39 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-ggsave(plot_grid, file="./Figures/grid_outofBE5.png", 
-       width=9.5, height=5.5, scale=1/1.15)
-ggsave(plot_grid, file="./Figures/grid_outofBE5.pdf", 
-       width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE5.png", 
+#        width=9.5, height=5.5, scale=1/1.15)
+# ggsave(plot_grid, file="./Figures/grid_outofBE5.pdf", 
+#        width=9.5, height=5.5, scale=1/1.15)
 
 ```
 # Leveraging SLGP estimators for complex inference
 
 Predict the MAP estimator over all of Switzerland.
 
-```{r eval=FALSE}
+```{r evalMAP, eval=FALSE}
 df <- topography
 colnames(df) <- c("Longitude", "Latitude", "Altitude")
 
-disc_long <- 201/diff(range_long)
-disc_lat <- 201/diff(range_lat)
+disc_long <- 201
+disc_lat <- 201
 df <- df %>%
-  mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
-         Latitude=round(Latitude*(disc_lat-1))/(disc_lat-1))%>%
+  mutate(Longitude=(Longitude-range_long[1])/diff(range_long),
+         Latitude=(Latitude-range_lat[1])/diff(range_lat))%>%
+  mutate(Longitude=round(Longitude*disc_long)/(disc_long),
+         Latitude=round(Latitude*disc_lat)/(disc_lat))%>%
   group_by(Longitude, Latitude) %>%
   summarise(Altitude=median(Altitude), .groups="keep") %>%
+  ungroup()%>%
+  mutate(Longitude=Longitude*diff(range_long)+range_long[1],
+         Latitude=Latitude*diff(range_lat)+range_lat[1]) %>%
   data.frame() 
 df2 <- expand.grid(seq(range_temp[1], range_temp[2],, 141), seq(nrow(df)))
 df2 <- cbind(df[df2$Var2, ], df2$Var1)
 colnames(df2)[4] <- "Temperature"
 
 dfSwissMAP<- data.frame()
-rep <- 47*5
+rep <- 3*47
 n <- nrow(df2)/rep
 # Start time
 start_time <- Sys.time()
@@ -837,8 +842,8 @@ for(i in seq(rep)){
   elapsed_time <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
   iter_time <- as.numeric(difftime(Sys.time(), iter_start_time, units = "mins"))
   
-  if(i%%5==0){
-    cat("Saved just in case at ", i%/%5, "/47\n")
+  if(i%%3==0){
+    cat("Saved just in case at ", i%/%3, "/47\n")
     save(dfSwissMAP, file="predictionInSwitzerlandMAP.RData")
   }
   # Print elapsed time and iteration time
@@ -849,25 +854,30 @@ save(dfSwissMAP, file="predictionInSwitzerlandMAP.RData")
 ```
 
 Predict the MCMC estimations over all of Switzerland.
-```{r eval=FALSE}
+```{r evalMCMC, eval=FALSE}
 
 df <- topography
 colnames(df) <- c("Longitude", "Latitude", "Altitude")
 
-disc_long <- 101/diff(range_long)
-disc_lat <- 101/diff(range_lat)
+disc_long <- 101
+disc_lat <- 101
 df <- df %>%
-  mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
-         Latitude=round(Latitude*(disc_lat-1))/(disc_lat-1))%>%
+  mutate(Longitude=(Longitude-range_long[1])/diff(range_long),
+         Latitude=(Latitude-range_lat[1])/diff(range_lat))%>%
+  mutate(Longitude=round(Longitude*disc_long)/(disc_long),
+         Latitude=round(Latitude*disc_lat)/(disc_lat))%>%
   group_by(Longitude, Latitude) %>%
   summarise(Altitude=median(Altitude), .groups="keep") %>%
+  ungroup()%>%
+  mutate(Longitude=Longitude*diff(range_long)+range_long[1],
+         Latitude=Latitude*diff(range_lat)+range_lat[1]) %>%
   data.frame() 
 df2 <- expand.grid(seq(range_temp[1], range_temp[2],, 141), seq(nrow(df)))
 df2 <- cbind(df[df2$Var2, ], df2$Var1)
 colnames(df2)[4] <- "Temperature"
 
 dfSwissMCMC <- data.frame()
-rep <- 32*3
+rep <- 47*3
 n <- nrow(df2)/rep
 # Start time
 start_time <- Sys.time()
@@ -884,16 +894,14 @@ for(i in seq(rep)){
   elapsed_time <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
   iter_time <- as.numeric(difftime(Sys.time(), iter_start_time, units = "mins"))
   
-  if(i%%8==0){
-    cat("Saved just in case at ", i%/%8, "/12\n")
-    save(dfSwissMCMC, file="predictionInSwitzerlandMCMC.RData")
-  }
+  save(temp, file = paste0("./SavedData/predictionInSwitzerlandMCMC_", i, ".RData"))
+
   # Print elapsed time and iteration time
   cat("Total elapsed time:", elapsed_time, 
       "mins\nTime for this iteration:", iter_time, "mins\n\n")
-}
-save(dfSwissMCMC, file="predictionInSwitzerlandMCMC.RData")
 
+}
+gc()
 ```
 
 ... And now, let us use these!
@@ -942,14 +950,18 @@ plots <- dfSwissMAP %>%
   })
 
 # Arrange plots with cowplot
-plot_grid(plotlist = plots, ncol = 3, align = 'hv')
+plot<- plot_grid(plotlist = plots, ncol = 3, align = 'hv')
+# ggsave(plot, file="./Figures/invPb.png", 
+#        width=9.5, height=3.75, scale=1/1.10)
+# ggsave(file="./Figures/invPb.pdf", 
+#        width=9.5, height=3.75, scale=1/1.10)
 ```
 
-This approach is intuitively meaningful when considering Switzerland's diverse geography:
+These results are consistent with Switzerland's diverse geography:
 
-  * *Cold Temperatures (e.g., -15°C):* The SLGP modelling predominantly identifies locations in the Alps and at high altitudes, where cold conditions are common due to elevation and geographical isolation. This aligns with our expectation, as the high Alpine summits and mountainous regions experience colder temperatures.
+  * *Cold Temperatures (e.g., -15°C):* The SLGP modelling predominantly identifies locations in the Alps and at high altitudes, where cold conditions are common due to elevation. This aligns with our expectation, as the high Alpine summits and mountainous regions experience colder temperatures.
 
-  * *Moderate Temperatures (e.g., 5°C):* The SLGP MAP estimator shows a broader range of possible locations, including the Swiss Plateau and parts of Ticino. Additionally, moderate temperatures are also observed in mountainous regions, provided they aren’t at very high altitudes.
+  * *Moderate Temperatures (e.g., 5°C):* The SLGP MAP estimator shows a broader range of possible locations, including the Swiss Plateau and parts of Ticino (center-south of Switzerland). Additionally, moderate temperatures are also observed in mountainous regions, provided they aren’t at very high altitudes.
 
   * *Warm Temperatures (e.g., 25°C):* The model highlights low-altitude areas like the Swiss Plateau and valleys in Ticino as likely locations for warmer temperatures.  The southern slopes of the Alps, such as those in Ticino, experience a warmer climate due to the influence of southern climate patterns. This analysis rules out higher mountainous areas, as such temperatures are unusual at high elevations.
 
@@ -958,10 +970,21 @@ This approach offers a sight into the potential of SLGP for solving stochastic i
 ## Probabilistic prediction of quantities of interest
 
 ```{r}
-load(file="predictionInSwitzerlandMCMC.RData")
+# Recombine chunks
+data_chunks <- list()
 
-disc_long <- 101/diff(range_long)
-disc_lat <- 101/diff(range_lat)
+for (i in 1:77) {  # Replace with actual number of chunks
+  load(paste0("./SavedData/predictionInSwitzerlandMCMC_", i, ".RData"))
+  data_chunks[[i]] <- temp
+}
+
+# Recombine all chunks into a single object if it's a data frame or list
+dfSwissMCMC <- do.call("rbind", data_chunks)  # Adjust based on data structure
+rm(data_chunks)
+
+
+disc_long <- 100/diff(range_long)
+disc_lat <- 100/diff(range_lat)
 
 stations_discretized <- stations %>%
   mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
@@ -1123,10 +1146,10 @@ plot_grid <- grid.arrange(plotmap+ theme(aspect.ratio=0.5),
                           layout_matrix = rbind(c(1, 1),
                                                 c(2, 3)),
                           respect=FALSE)
-ggsave(plot_grid, file="./Figures/slice_switzerland.png", 
-       width=9.5, height=5.5, scale=1.1)
-ggsave(plot_grid, file="./Figures/slice_switzerland.pdf", 
-       width=9.5, height=5.5, scale=1.1)
+# ggsave(plot_grid, file="./Figures/slice_switzerland.png", 
+#        width=9.5, height=5.5, scale=1.1)
+# ggsave(plot_grid, file="./Figures/slice_switzerland.pdf", 
+#        width=9.5, height=5.5, scale=1.1)
 ```
 
 
@@ -1351,10 +1374,10 @@ plot_grid <- grid.arrange(plotmap+ theme(aspect.ratio=0.5),
                           layout_matrix = rbind(c(1, 1),
                                                 c(2, 3)),
                           respect=FALSE)
-ggsave(plot_grid, file="./Figures/slice_switzerland.png", 
-       width=9.5, height=5.5, scale=1.1)
-ggsave(plot_grid, file="./Figures/slice_switzerland.pdf", 
-       width=9.5, height=5.5, scale=1.1)
+# ggsave(plot_grid, file="./Figures/slice_switzerland.png", 
+#        width=9.5, height=5.5, scale=1.1)
+# ggsave(plot_grid, file="./Figures/slice_switzerland.pdf", 
+#        width=9.5, height=5.5, scale=1.1)
 
 subset <- df_plot_meteo2$x1
 df_plot_meteo_summary <- df_plot_meteo %>%
@@ -1441,10 +1464,10 @@ plot2 <- ggplot(df_plot_meteo_summary[!ind_exp, ],
                      ))+ 
   xlab("Longitude") + ylab("Latitude") 
 plot_grid <- grid.arrange(plot1, plot2, ncol=2)
-ggsave(plot_grid, file="./Figures/grid_about_q50.png", 
-       width=9, height=3.5, scale=1)
-ggsave(plot_grid, file="./Figures/grid_about_q50.pdf", 
-       width=9, height=3.5, scale=1)
+# ggsave(plot_grid, file="./Figures/grid_about_q50.png", 
+#        width=9, height=3.5, scale=1)
+# ggsave(plot_grid, file="./Figures/grid_about_q50.pdf", 
+#        width=9, height=3.5, scale=1)
 
 plot1 <- ggplot(df_plot_meteo_summary[ind_exp, ],
                 aes(x=long, y=lat, fill=mean))+
@@ -1485,9 +1508,9 @@ plot2 <- ggplot(df_plot_meteo_summary[!ind_exp, ],
                      ))+ 
   xlab("Longitude") + ylab("Latitude") 
 plot_grid <- grid.arrange(plot1, plot2, ncol=2)
-ggsave(plot_grid, file="./Figures/grid_about_mean.png", 
-       width=9, height=3.5, scale=1)
-ggsave(plot_grid, file="./Figures/grid_about_mean.pdf", 
-       width=9, height=3.5, scale=1)
+# ggsave(plot_grid, file="./Figures/grid_about_mean.png", 
+#        width=9, height=3.5, scale=1)
+# ggsave(plot_grid, file="./Figures/grid_about_mean.pdf", 
+#        width=9, height=3.5, scale=1)
 ```
 

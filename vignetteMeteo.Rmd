@@ -876,20 +876,18 @@ df2 <- expand.grid(seq(range_temp[1], range_temp[2],, 141), seq(nrow(df)))
 df2 <- cbind(df[df2$Var2, ], df2$Var1)
 colnames(df2)[4] <- "Temperature"
 
-dfSwissMCMC <- data.frame()
 rep <- 47*3
 n <- nrow(df2)/rep
 # Start time
 start_time <- Sys.time()
-for(i in seq(rep)){
+for(i in seq(131, rep)){
   # Time at the start of each iteration
   iter_start_time <- Sys.time()
   cat(i, "\n")
   temp <- predictSLGP_newNode(SLGPmodel=model3,
                               newNodes = df2[1:n  + (i-1)*n, ],
                               nDiscret=201)
-  dfSwissMCMC <- rbind(dfSwissMCMC, temp)
-  
+
   # Calculate elapsed time since the beginning in minutes
   elapsed_time <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
   iter_time <- as.numeric(difftime(Sys.time(), iter_start_time, units = "mins"))

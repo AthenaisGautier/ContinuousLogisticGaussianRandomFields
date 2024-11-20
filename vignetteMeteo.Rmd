@@ -142,8 +142,8 @@ plotDensities <- merge(samples, stations[, c(2, 4, 5, 7)]) %>%
             mapping=aes(x=x, y=y, col="Pointwise KDE"))+
   geom_histogram(mapping=aes(x=Temperature, y=after_stat(density), 
                              fill=inCantonBE2),  col="white", lwd=0.1,
-                 breaks = seq(-30, 40, 2.0), alpha=0.2, lwd=0.01)+
-  geom_density(mapping=aes(x=Temperature), col="black")+
+                 breaks = seq(-30, 40, 2.0), alpha=0.5, lwd=0.01)+
+  geom_density(mapping=aes(x=Temperature), col="darkgrey")+
   scale_fill_manual(values=c("In the canton of Bern (test set)"="cornflowerblue", 
                              "Out of the canton of Bern (train set)"="darkgrey"))+
   facet_wrap(paste0(Station, " (", Altitude, "m)")~.)+
@@ -157,10 +157,14 @@ plotDensities <- merge(samples, stations[, c(2, 4, 5, 7)]) %>%
        col="Curve represented")+
   coord_cartesian(xlim=range_temp, ylim=c(0, 0.07))+
   scale_color_manual(values=c("SLGP-MAP"="red",
-                              "Pointwise KDE"="black"))
+                              "Pointwise KDE"="darkgrey"))
 plotDensities
-```
+ggsave(plotDensities+guides(col = "none") , file="./Figures/empiricalMeteo.png",
+       width=8.5, height=7, scale=1.1)
+ggsave(plotDensities+guides(col = "none") , file="./Figures/empiricalMeteo.pdf",
+       width=8.5, height=7, scale=1.1)
 
+```
 ## Initial SLGP Estimation with Arbitrary Hyperparameters
 
 
@@ -449,14 +453,14 @@ for(i in seq(nrow(stations))){
               mapping=aes(x=x, y=y, col="Pointwise KDE"))+
     geom_histogram(mapping=aes(x=Temperature, y=after_stat(density), 
                                fill=inCantonBE2),  col="white", lwd=0.2,
-                   breaks = seq(-30, 40, 2.0), alpha=0.2)+  
+                   breaks = seq(-30, 40, 2.0), alpha=0.5)+  
     geom_histogram(data=data.frame(Temperature=seq(2)-1000,
                                    inCantonBE2=c("In the canton of Bern (test set)", 
                                                  "Out of the canton of Bern (train set)")),
                    mapping=aes(x=Temperature, y=after_stat(density),
                                fill=inCantonBE2, col="white"), 
                    breaks = seq(-30, 40, 2.5), alpha=0.2)+
-    geom_density(mapping=aes(x=Temperature), col="black")+
+    geom_density(mapping=aes(x=Temperature), col="chartreuse3")+
     scale_fill_manual(values=c("In the canton of Bern (test set)"="cornflowerblue", 
                                "Out of the canton of Bern (train set)"="darkgrey"))+
     facet_wrap(paste0(Station, " (", Altitude, "m)")~.)+
@@ -496,13 +500,13 @@ for(i in seq(nrow(stations))){
     scale_color_manual(values=c("SLGP-MAP"="red",
                                 "SLGP-MCMC draws"="darkgrey", 
                                 "SLGP-MCMC mean"="dodgerblue3",
-                                "Pointwise KDE"="black"))+
+                                "Pointwise KDE"="chartreuse3"))+
     scale_linetype_manual(values=c("SLGP-MAP"=1, 
                                    "SLGP-MCMC draws"=1, 
                                    "SLGP-MCMC mean"=2,
                                    "Pointwise KDE"=1))+
     scale_alpha_manual(values=c("SLGP-MAP"=1, 
-                                "SLGP-MCMC draws"=0.75, 
+                                "SLGP-MCMC draws"=0.5, 
                                 "SLGP-MCMC mean"=1,
                                 "Pointwise KDE"=1))+
     labs(lty="Curve represented",
@@ -581,10 +585,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-# ggsave(plot_grid, file="./Figures/grid_mixBE.png", 
-#        width=9.5, height=5.5, scale=1/1.15)
-# ggsave(plot_grid, file="./Figures/grid_mixBE.pdf", 
-#        width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_mixBE.png",
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_mixBE.pdf",
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -624,10 +628,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-# ggsave(plot_grid, file="./Figures/grid_outofBE.png", 
-#        width=9.5, height=5.5, scale=1/1.15)
-# ggsave(plot_grid, file="./Figures/grid_outofBE.pdf", 
-#        width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE.png",
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE.pdf",
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -666,10 +670,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-# ggsave(plot_grid, file="./Figures/grid_outofBE2.png", 
-#        width=9.5, height=5.5, scale=1/1.15)
-# ggsave(plot_grid, file="./Figures/grid_outofBE2.pdf", 
-#        width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE2.png",
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE2.pdf",
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -708,10 +712,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-# ggsave(plot_grid, file="./Figures/grid_outofBE3.png", 
-#        width=9.5, height=5.5, scale=1/1.15)
-# ggsave(plot_grid, file="./Figures/grid_outofBE3.pdf", 
-#        width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE3.png",
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE3.pdf",
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -750,10 +754,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-# ggsave(plot_grid, file="./Figures/grid_outofBE4.png", 
-#        width=9.5, height=5.5, scale=1/1.15)
-# ggsave(plot_grid, file="./Figures/grid_outofBE4.pdf", 
-#        width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE4.png",
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE4.pdf",
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -793,10 +797,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-# ggsave(plot_grid, file="./Figures/grid_outofBE5.png", 
-#        width=9.5, height=5.5, scale=1/1.15)
-# ggsave(plot_grid, file="./Figures/grid_outofBE5.pdf", 
-#        width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE5.png",
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE5.pdf",
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 # Leveraging SLGP estimators for complex inference
@@ -880,24 +884,24 @@ rep <- 47*3
 n <- nrow(df2)/rep
 # Start time
 start_time <- Sys.time()
-for(i in seq(131, rep)){
+for(i in seq(rep)){
   # Time at the start of each iteration
   iter_start_time <- Sys.time()
   cat(i, "\n")
   temp <- predictSLGP_newNode(SLGPmodel=model3,
                               newNodes = df2[1:n  + (i-1)*n, ],
                               nDiscret=201)
-
+  
   # Calculate elapsed time since the beginning in minutes
   elapsed_time <- as.numeric(difftime(Sys.time(), start_time, units = "mins"))
   iter_time <- as.numeric(difftime(Sys.time(), iter_start_time, units = "mins"))
   
   save(temp, file = paste0("./SavedData/predictionInSwitzerlandMCMC_", i, ".RData"))
-
+  
   # Print elapsed time and iteration time
   cat("Total elapsed time:", elapsed_time, 
       "mins\nTime for this iteration:", iter_time, "mins\n\n")
-
+  
 }
 gc()
 ```
@@ -908,7 +912,7 @@ gc()
 
 In this proof of concept, we demonstrate an "inverse problem" approach: given a temperature observation, we use the MAP (Maximum A Posteriori) estimator of the Spatial Logistic Gaussian Process (SLGP) model to identify likely regions in Switzerland where this temperature could have been observed. This allows us to infer potential locations based on specific temperature measurements.
 
-```{r plotInvPb, fig.cap = "An inverse problem solved with SLGP modelling: temeprature based localisation", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r plotInvPb, fig.cap = "An inverse problem solved with SLGP modelling: temeprature based localisation", fig.fullwidth=TRUE, fig.height=4.0, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 load(file="predictionInSwitzerlandMAP.RData")
 plots <- dfSwissMAP %>%
   dplyr::filter(Temperature %in% c(-15, 5, 25)) %>%
@@ -949,6 +953,7 @@ plots <- dfSwissMAP %>%
 
 # Arrange plots with cowplot
 plot<- plot_grid(plotlist = plots, ncol = 3, align = 'hv')
+plot
 # ggsave(plot, file="./Figures/invPb.png", 
 #        width=9.5, height=3.75, scale=1/1.10)
 # ggsave(file="./Figures/invPb.pdf", 
@@ -957,21 +962,22 @@ plot<- plot_grid(plotlist = plots, ncol = 3, align = 'hv')
 
 These results are consistent with Switzerland's diverse geography:
 
-  * *Cold Temperatures (e.g., -15°C):* The SLGP modelling predominantly identifies locations in the Alps and at high altitudes, where cold conditions are common due to elevation. This aligns with our expectation, as the high Alpine summits and mountainous regions experience colder temperatures.
+* *Cold Temperatures (e.g., -15°C):* The SLGP modelling predominantly identifies locations in the Alps and at high altitudes, where cold conditions are common due to elevation. This aligns with our expectation, as the high Alpine summits and mountainous regions experience colder temperatures.
 
-  * *Moderate Temperatures (e.g., 5°C):* The SLGP MAP estimator shows a broader range of possible locations, including the Swiss Plateau and parts of Ticino (center-south of Switzerland). Additionally, moderate temperatures are also observed in mountainous regions, provided they aren’t at very high altitudes.
+* *Moderate Temperatures (e.g., 5°C):* The SLGP MAP estimator shows a broader range of possible locations, including the Swiss Plateau and parts of Ticino (center-south of Switzerland). Additionally, moderate temperatures are also observed in mountainous regions, provided they aren’t at very high altitudes.
 
-  * *Warm Temperatures (e.g., 25°C):* The model highlights low-altitude areas like the Swiss Plateau and valleys in Ticino as likely locations for warmer temperatures.  The southern slopes of the Alps, such as those in Ticino, experience a warmer climate due to the influence of southern climate patterns. This analysis rules out higher mountainous areas, as such temperatures are unusual at high elevations.
+* *Warm Temperatures (e.g., 25°C):* The model highlights low-altitude areas like the Swiss Plateau and valleys in Ticino as likely locations for warmer temperatures.  The southern slopes of the Alps, such as those in Ticino, experience a warmer climate due to the influence of southern climate patterns. This analysis rules out higher mountainous areas, as such temperatures are unusual at high elevations.
 
 This approach offers a sight into the potential of SLGP for solving stochastic inverse problems. 
 
 ## Probabilistic prediction of quantities of interest
 
-```{r}
+We start by loading the predictions over Switzerland.
+```{r eval=FALSE}
 # Recombine chunks
 data_chunks <- list()
 
-for (i in 1:77) {  # Replace with actual number of chunks
+for (i in 1:141) {  # Replace with actual number of chunks
   load(paste0("./SavedData/predictionInSwitzerlandMCMC_", i, ".RData"))
   data_chunks[[i]] <- temp
 }
@@ -979,65 +985,118 @@ for (i in 1:77) {  # Replace with actual number of chunks
 # Recombine all chunks into a single object if it's a data frame or list
 dfSwissMCMC <- do.call("rbind", data_chunks)  # Adjust based on data structure
 rm(data_chunks)
+gc()
+```
+
+```{r include=FALSE}
+# save(dfSwissMCMC, file = "./predictionInSwitzerlandMCMC.RData")
+load(file = "./predictionInSwitzerlandMCMC.RData")
+
+```
 
 
-disc_long <- 100/diff(range_long)
-disc_lat <- 100/diff(range_lat)
 
-stations_discretized <- stations %>%
-  mutate(Longitude=round(Longitude*(disc_long-1))/(disc_long-1),
-         Latitude=round(Latitude*(disc_lat-1))/(disc_lat-1))%>%
+```{r plotSlicesDrawn, fig.cap = "Two slices across Switzerland", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+disc_long <- 101
+disc_lat <- 101
+
+stations_discretized <- stations%>%
+  mutate(Longitude=(Longitude-range_long[1])/diff(range_long),
+         Latitude=(Latitude-range_lat[1])/diff(range_lat))%>%
+  mutate(Longitude=round(Longitude*disc_long)/(disc_long),
+         Latitude=round(Latitude*disc_lat)/(disc_lat))%>%
+  mutate(Longitude=Longitude*diff(range_long)+range_long[1],
+         Latitude=Latitude*diff(range_lat)+range_lat[1])%>%
   dplyr::select(Latitude, Longitude, Station) %>%
   data.frame() 
 
 df_plot_meteo2 <- merge(dfSwissMCMC, stations_discretized, 
-                        by=c("Latitude", "Longitude"), all.x=TRUE)
-unique(df_plot_meteo2$Station)
+                        by=c("Latitude", "Longitude"), all.x = TRUE)
 
 gc()
-df_plot_meteo2$subset2 <- abs((df_plot_meteo2$Latitude-range_lat[1])/diff(range_lat)+
-                                1.125*(df_plot_meteo2$Longitude-range_long[1])/
-                                diff(range_long)-0.86)<=0.03
-df_plot_meteo2$subset1 <- abs((df_plot_meteo2$Latitude-range_lat[1])/diff(range_lat)+
-                                1.125*(df_plot_meteo2$Longitude-range_long[1])/
-                                diff(range_long)-0.86)<=0.005
 
-plotmap <- switzerland +
-  geom_segment(aes(x=0.175*diff(range_long)+range_long[1],
-                   xend=0.68*diff(range_long)+range_long[1],
-                   y=47.12,
-                   yend=46.01), col="black", linewidth=2)+
-  geom_segment(aes(x=0.175*diff(range_long)+range_long[1],
-                   xend=0.68*diff(range_long)+range_long[1],
-                   y=47.12,
-                   yend=46.01), col="grey", lty=1)
-plot(plotmap)
+slope1 <- 1.00
+intercept1 <- 0.836635
+delta1 <- 0.005
+slope2 <- -8/7
+intercept2 <- -0.110
+delta2 <- 0.015
+
+df_plot_meteo2$subset1 <- abs((df_plot_meteo2$Latitude-range_lat[1])/diff(range_lat)+
+                                slope1*(df_plot_meteo2$Longitude-range_long[1])/
+                                diff(range_long)-intercept1)<=delta1
+
+df_plot_meteo2$subset2 <- abs((df_plot_meteo2$Latitude-range_lat[1])/diff(range_lat)+
+                                slope2*(df_plot_meteo2$Longitude-range_long[1])/
+                                diff(range_long)-intercept2)<=delta2
+
+xini1 <- 0.170
+xend1 <- 0.68
+xini2 <- 0.22
+xend2 <- 0.82
+plotmap1 <- switzerland + 
+  geom_segment(aes(x=xini1*diff(range_long)+range_long[1],
+                   xend=xend1*diff(range_long)+range_long[1],
+                   y=(intercept1-slope1*xini1)*diff(range_lat)+range_lat[1],
+                   yend=(intercept1-slope1*xend1)*diff(range_lat)+range_lat[1]), 
+               col="white", linewidth=1.5)+
+  geom_segment(aes(x=xini1*diff(range_long)+range_long[1],
+                   xend=xend1*diff(range_long)+range_long[1],
+                   y=(intercept1-slope1*xini1)*diff(range_lat)+range_lat[1],
+                   yend=(intercept1-slope1*xend1)*diff(range_lat)+range_lat[1]), 
+               col="#ffc107", lty=2)
+plotmap2 <- switzerland +  geom_segment(aes(x=xini2*diff(range_long)+range_long[1],
+                                            xend=xend2*diff(range_long)+range_long[1],
+                                            y=(intercept2-slope2*xini2)*
+                                              diff(range_lat)+range_lat[1],
+                                            yend=(intercept2-slope2*xend2)*
+                                              diff(range_lat)+range_lat[1]), 
+                                        col="white", linewidth=1.5)+
+  geom_segment(aes(x=xini2*diff(range_long)+range_long[1],
+                   xend=xend2*diff(range_long)+range_long[1],
+                   y=(intercept2-slope2*xini2)*diff(range_lat)+range_lat[1],
+                   yend=(intercept2-slope2*xend2)*diff(range_lat)+range_lat[1]), 
+               col="#1E88E5", lty=1)
+plotmap12 <- plotmap1+geom_segment(aes(x=xini2*diff(range_long)+range_long[1],
+                                       xend=xend2*diff(range_long)+range_long[1],
+                                       y=(intercept2-slope2*xini2)*diff(range_lat)+range_lat[1],
+                                       yend=(intercept2-slope2*xend2)*diff(range_lat)+range_lat[1]), 
+                                   col="white", linewidth=1.5)+
+  geom_segment(aes(x=xini2*diff(range_long)+range_long[1],
+                   xend=xend2*diff(range_long)+range_long[1],
+                   y=(intercept2-slope2*xini2)*diff(range_lat)+range_lat[1],
+                   yend=(intercept2-slope2*xend2)*diff(range_lat)+range_lat[1]), 
+               col="#1E88E5", lty=1)
+
+plot(plotmap12)
+
 
 ```
 
-```{r}
+
+```{r eval=FALSE}
 # Extract the chunks on the slice and project them in 1D
-df_plot_meteo2 <- subset(df_plot_meteo2, df_plot_meteo2$subset2)
-df_plot_meteo2$Latitude <- (df_plot_meteo2$Latitude - range_lat[1])/diff(range_lat)
-df_plot_meteo2$Longitude <- (df_plot_meteo2$Longitude - range_long[1])/diff(range_long)
-# line y=-1.125 x+ 0.86
+df_plot_meteo3 <- subset(df_plot_meteo2, df_plot_meteo2$subset2)
+df_plot_meteo3$Latitude <- (df_plot_meteo3$Latitude - range_lat[1])/diff(range_lat)
+df_plot_meteo3$Longitude <- (df_plot_meteo3$Longitude - range_long[1])/diff(range_long)
+# line y=-1.05 x+ 0.85
 library(StereoMorph)
-orth_vect <- orthogonalProjectionToLine(df_plot_meteo2[, c(1:2)], l1 = c(0, 0.86), 
-                                        l2 = c(1, 0.86-1.125))
-df_plot_meteo2$x1proj <- orth_vect[, 1]
-df_plot_meteo2$x2proj <- orth_vect[, 2]
-df_plot_meteo2$dproj <- sqrt((df_plot_meteo2$x1-df_plot_meteo2$x1proj)^2+
-                               (df_plot_meteo2$x2-df_plot_meteo2$x2proj)^2)
-df_plot_meteo2<- df_plot_meteo2%>%
+orth_vect <- orthogonalProjectionToLine(df_plot_meteo3[, c(1:2)], l1 = c(0, 0.85), 
+                                        l2 = c(1, 0.85-1.05))
+df_plot_meteo3$x1proj <- orth_vect[, 1]
+df_plot_meteo3$x2proj <- orth_vect[, 2]
+df_plot_meteo3$dproj <- sqrt((df_plot_meteo3$x1-df_plot_meteo3$x1proj)^2+
+                               (df_plot_meteo3$x2-df_plot_meteo3$x2proj)^2)
+df_plot_meteo3<- df_plot_meteo3%>%
   mutate(place_on_line = 1-(x1proj-min(x1proj))/diff(range(x1proj)))%>%
   group_by(dproj)
 
-df_plot_meteo2 <-  df_plot_meteo2%>%
+df_plot_meteo3 <-  df_plot_meteo3%>%
   dplyr::select(-x1proj, -x2proj)%>%
   mutate(Latitude=Latitude*diff(range_lat)+range_lat[1],
          Longitude=Longitude*diff(range_long)+range_long[1])%>%
   pivot_longer(-c("Latitude", "Longitude", "Altitude", "Temperature", "place_on_line", "dproj","subset1", "subset2", "Station"))%>%
-  mutate(simu=substr(name, 5, 10),
+  mutate(simu=substr(name, 5, 11),
          valuepdf=value) %>%
   group_by(Latitude, Longitude, Altitude, simu)%>%
   mutate(valuecdf=cumsum(value))%>%
@@ -1047,12 +1106,11 @@ df_plot_meteo2 <-  df_plot_meteo2%>%
   dplyr::select(-c("name", "value"))%>%
   data.frame()
 
-df_plot_meteo2_summary <- df_plot_meteo2 %>%
-  group_by(Latitude, Longitude, Altitude, simu)%>%
-  summarise(place_on_line=mean(place_on_line),
+df_plot_meteo2_summary <- df_plot_meteo3 %>%
+  group_by(place_on_line, simu)%>%
+  summarise(Altitude=mean(Altitude),
             subset1 = median(subset1),
             subset2 = median(subset2),
-            dproj = mean(dproj),
             mean = mean(Temperature*valuepdf),
             Station=ifelse(all(is.na(Station)), NA, unique(na.omit(Station))),
             q10 = Temperature[which.min(abs(valuecdf-0.1))],
@@ -1070,16 +1128,15 @@ df_plot_meteo2_summary <- df_plot_meteo2 %>%
 
 # Select the stations on this slice
 stations_other <- subset(df_plot_meteo2_summary,
-                         !is.na(df_plot_meteo2$Station))
-stations_other <- dplyr::select(stations_other, -starts_with("pdf"))
-stations_other<- stations_other%>%
-  mutate(Latitude=Latitude*diff(range_lat)+range_lat[1],
-         Longitude=Longitude*diff(range_long)+range_long[1])
+                         !is.na(df_plot_meteo2_summary$Station))
+stations_other <- subset(stations_other,
+                         stations_other$simu==1)
+
 ```
 
 We visualise the topographic profile of this slice, and the location of the stations alongside it.
 
-```{r}
+```{r eval=FALSE}
 plot1 <- 
   df_plot_meteo2_summary %>%
   filter(subset1==1)%>%
@@ -1087,19 +1144,19 @@ plot1 <-
   pivot_longer(starts_with("q"))%>%
   mutate(name=paste0(substr(name, 2, 3), "%"))%>%
   rename(`Quantile level`=name)%>%
-  group_by(Latitude, Longitude, Altitude, place_on_line, `Quantile level`)%>%
+  group_by(Altitude, place_on_line, `Quantile level`)%>%
   summarise(mean=mean(value),
             qL=quantile(value, 0.1),
             qH = quantile(value, 0.9),
             .groups="keep")%>%
   ggplot(aes(x=place_on_line, y=Altitude))+
   geom_ribbon(mapping=aes(ymin=0, ymax=Altitude), alpha=0.2, col="black", lty=1)+
-
+  geom_point(data=stations_other)+
   geom_label_repel(data=stations_other,
                    aes(label=Station),
                    size=3, alpha=0.9, 
                    point.padding = 0.5, 
-                   box.padding = 0.5,    
+                   box.padding = 0.,    
                    segment.curvature = -1e-20)+
   theme_bw()+
   theme(legend.position="bottom", 
@@ -1109,7 +1166,7 @@ plot1 <-
 plot1
 ```
 
-```{r}
+```{r eval=FALSE}
 plot2 <- 
   df_plot_meteo2_summary %>%
   filter(subset1==1)%>%

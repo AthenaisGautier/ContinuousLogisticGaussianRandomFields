@@ -1226,54 +1226,69 @@ rm(predMAP, predMCMC, predMCMC2, legend1, legend2, grob_pl1, grob_pl1,
 gc()
 ```
 
-Of course, we can also simply visualise directly some quantities of interest (such as mean expected temperature, mean quantile) and the associated point-wise uncertainty (standard deviation, inter-quartile range) over the map of Switzerland
+Of course, we can also simply visualise directly some quantities of interest (such as mean expected temperature, mean quantile) and the associated point-wise uncertainty (standard deviation, inter-quartile range) over the map of Switzerland.
+
+We perform the necessary computations
 
 ```{r}
-
-df_plot_meteo4 <- df_plot_meteo2 %>%
+df_plot_meteo2 <- df_plot_meteo2 %>%
   dplyr::select(-subset1, -subset2, -Station)%>%
   group_by(Latitude, Longitude, Altitude)%>%
   arrange(Temperature)%>%
   mutate(ID = cur_group_id()) %>% 
   ungroup()%>%
   arrange(ID, Temperature)
-t <- as.numeric(df_plot_meteo4$Temperature[1:141])
-value_cdf <- sapply(seq(4), function(i){
+```
+
+```{r eval=FALSE}
+t <- as.numeric(df_plot_meteo2$Temperature[1:141])
+value_cdf <- sapply(seq(1000), function(i){
   print(i)
-  tapply(df_plot_meteo4[, 4+i], INDEX=df_plot_meteo4$ID, function(pdf){
-    cdf <-  cumsum(unlist(pdf))
+  unlist(tapply(as.matrix(df_plot_meteo2[, 4+i]), INDEX=df_plot_meteo2$ID, function(pdf){
+    cdf <-  cumsum(pdf)
     r <- range(cdf)
-    cdf <- ((cdf-r[1])/(r[2]-r[1]))[, 1]
+    cdf <- ((cdf-r[1])/(r[2]-r[1]))
     # invcdf <- approx(x=cdf, y=t, xout=c(0.1, 0.5, 0.9))
     return(cdf)
-  })
+  }))
 })
-save(values, file="valuesOverSwitzerland.RData")
+save(value_cdf, file="valuesCDFOverSwitzerland.RData")
+
+qtyOfInt1 <- sapply(seq(1000), function(i){
+  print(i)
+  unlist(tapply(as.matrix(df_plot_meteo2[, 4+i]), INDEX=df_plot_meteo2$ID, function(pdf){
+    m <- sum(t*pdf)/sum(pdf)
+    return(m)
+  }))
+})
+qtyOfInt2 <- sapply(seq(1000), function(i){
+  print(i)
+  unlist(tapply(value_cdf[, i], INDEX=df_plot_meteo2$ID, function(cdf){
+    invcdf <- approx(x=cdf, y=t, xout=c(0.1, 0.5, 0.9))$y
+    return(invcdf)
+  }))
+})
+namesVec <- c(rep("Expected value", nrow(qtyOfInt1)),
+              rep(c("Quantile: 10%", "Quantile: 50%", "Quantile: 90%"), nrow(qtyOfInt1)))
+IDVec <- c(seq(nrow(qtyOfInt1)), sapply(seq(nrow(qtyOfInt1)), function(x){rep(x, 3)}))
+df_plot_meteo2 <- df_plot_meteo2 %>%
+  dplyr::select(Latitude, Longitude, Altitude, ID)%>%
+  group_by(Latitude, Longitude, Altitude, ID)%>%
+  unique()%>%
+  arrange(ID)
+colnames(qtyOfInt1) <- colnames(qtyOfInt2) <- seq(1000)
+df_plot_meteo2 <- cbind(df_plot_meteo2[IDVec, ], namesVec, rbind(qtyOfInt1, qtyOfInt2))
+colnames(df_plot_meteo2)[5] <- c("Quantity")
+save(df_plot_meteo2, file="valuesQtyOverSwitzerland.RData")
+rm(qtyOfInt1, qtyOfInt2)
+gc()
 ```
 
 ```{r}
-load(file="valuesOverSwitzerland.RData")
-df_plot_meteo4 <-  df_plot_meteo4 %>%
-  dplyr::select(-subset1, -subset2, -Station)%>%
-  pivot_longer(-c("Latitude", "Longitude", "Altitude", "Temperature"))%>%
-  mutate(simu=substr(name, 5, 11),
-         valuepdf=value) %>%
-  group_by(Latitude, Longitude, Altitude, simu)%>%
-  arrange(Temperature) %>%   # Sort by ascending Temperature within groups
-  mutate(valuecdf=cumsum(value))%>%
-  mutate(valuecdf=valuecdf-min(valuecdf))%>%
-  mutate(valuecdf=valuecdf/max(valuecdf))%>%
-  ungroup()%>%
-  dplyr::select(-c("name", "value"))%>%
-  group_by(Latitude, Longitude, Altitude, simu) %>%
-  summarise(meanT = sum(Temperature*valuepdf)/sum(valuepdf),
-            q10 = (Temperature[which.min(abs(valuecdf-0.1))])[1],
-            q50 = (Temperature[which.min(abs(valuecdf-0.5))])[1],
-            q90 = (Temperature[which.min(abs(valuecdf-0.9))])[1],
-            .groups="keep")%>%
-  ungroup()%>%
-  pivot_longer(-c("Latitude", "Longitude", "Altitude", "simu"))%>%
-  group_by(Latitude, Longitude, Altitude, name) %>%
+load(file="valuesQtyOverSwitzerland.RData")
+df_plot_meteo2 <-  df_plot_meteo2 %>%
+  pivot_longer(-c("Latitude", "Longitude", "Altitude", "ID", "Quantity"))%>%
+  group_by(Latitude, Longitude, Altitude, ID, Quantity) %>%
   summarise(meanValue = mean(value),
             medianValue = median(value),
             sd = sqrt(var(value)),
@@ -1282,363 +1297,297 @@ df_plot_meteo4 <-  df_plot_meteo4 %>%
   data.frame()
 ```
 
-```{r eval=FALSE, include=FALSE}
-load(file="predictionInSwitzerlandMCMC.RData")
-
-library(readxl)
-library(raster)
-library(rgdal)
-rel <- raster("../datasets/relief/DTM Switzerland, 50m, by Sonny/DTM Switzerland 50m.tif",
-              crs="+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs")
-# ,
-# crs="+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=600000 +y_0=200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs")
-crs(rel)
-rel <- projectRaster(rel, crs="+proj=longlat +datum=WGS84")
-rel_spdf <- as(rel, "SpatialPixelsDataFrame")
-rel <- as.data.frame(rel_spdf)
-
-
-summary(rel)
-colnames(rel) <- c("h", "long", "lat")
-disc_long <- 101
-disc_lat <- 101
-rel2 <- rel
-rel2$long <- round(rel2$long*(disc_long-1))/(disc_long-1)
-rel2$lat <- round(rel2$lat*(disc_lat-1))/(disc_lat-1)
-rel2 <- rel2 %>%
-  group_by(long, lat) %>%
-  summarise(h=median(h)) %>%
+We now represent the corresponding maps.
+```{r plotMeanSwiss, fig.cap = "Summary of the SLGP probabilistic predictions for the expected temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+modality <- "Expected value"
+desired_order <- c(
+  paste("Mean prediction of the", modality),
+  paste("Standard deviation of the", modality),
+  paste("Median prediction of the", modality),
+  paste("Interquartile range of the", modality)
+)
+df_plot_summary <- df_plot_meteo2 %>%
+  dplyr::filter(Quantity==modality) %>%
   data.frame()
 
-
-world_map <- map_data("world", region="Switzerland")
-rel2$long <- round(rel2$long*(disc_long-1))/(disc_long-1)
-rel2$lat <- round(rel2$lat*(disc_lat-1))/(disc_lat-1)
-# Plot beginning
-switzerland <- ggplot() + 
-  geom_raster(rel2, mapping=aes(x=long, y=lat, fill=h*0), fill="white") +
-  geom_raster(rel2, mapping=aes(x=long, y=lat, fill=h), alpha=0.5) +
-  theme_void()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal") +
-  scale_fill_viridis(option = "turbo", direction = +1, 
-                     name="Elevation [m]",
+# Create individual plots for each statistic
+p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanValue)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
                      guide = guide_colorbar(
                        direction = "horizontal",
                        barheight = unit(2, units = "mm"),
                        barwidth = unit(50, units = "mm"),
-                       draw.ulim = F,
+                       draw.ulim = FALSE,
                        title.position = 'top',
-                       # some shifting around
                        title.hjust = 0.5,
                        label.hjust = 0.5
-                     ))+ 
-  xlab("Longitude") + ylab("Latitude") 
-switzerland
-
-
-disc_long <- 101
-disc_lat <- 101
-df2 <- data.frame(rel2)
-df2$lat <- (df2$lat - range_lat[1])/diff(range_lat)
-df2$long <- (df2$long - range_long[1])/diff(range_long)
-df2$h <- c((df2$h - range_height[1])/diff(range_height))
-rownames(df2) <- NULL
-summary(df2)
-df2$long <- round(df2$long*(disc_long-1))/(disc_long-1)
-df2$lat <- round(df2$lat*(disc_lat-1))/(disc_lat-1)
-df2 <- df2 %>%
-  group_by(long, lat) %>%
-  summarise(h=median(h), .groups="keep") %>%
-  data.frame()
-colnames(df2) <- c("x2", "x1", "x3")
-df2 <- df2[, paste0("x", seq(3))]
-
-stations_discretized <- stations_rescaled
-stations_discretized$x1 <- round(stations_discretized$x1*100)/100
-stations_discretized$x2 <- round(stations_discretized$x2*100)/100
-stations_discretized$x3 <- NULL
-stations_discretized$inBE <- NULL
-
-df_plot_meteo <- evaluate_SLGP_grid(epsilon=Fit$Posterior1, 
-                                    Xx=df2, 
-                                    name_index, 
-                                    lengthscale=res_opt$lengthscale,
-                                    par_basis_functions=par_basis_functions)
-
-df_plot_meteo2 <- merge(df_plot_meteo, stations_discretized, by=c("x1", "x2"), all.x=TRUE)
-df_plot_meteo2$subset2 <- abs(df_plot_meteo2$x1+1.125*df_plot_meteo2$x2-0.86)<=0.03
-df_plot_meteo2$subset1 <- abs(df_plot_meteo2$x1+1.125*df_plot_meteo2$x2-0.86)<=0.005
-plotmap <- switzerland +
-  # geom_abline(slope=-1.125*diff(range_lat)/diff(range_long), 
-  #             intercept = diff(range_lat)*
-  #               (0.86+1.125*(range_long[1])/diff(range_long))+
-  #               range_lat[1])+
-  geom_segment(aes(x=0.175*diff(range_long)+range_long[1],
-                   xend=0.68*diff(range_long)+range_long[1],
-                   y=47.12,
-                   yend=46.01), col="black", size=2)+
-  geom_segment(aes(x=0.175*diff(range_long)+range_long[1],
-                   xend=0.68*diff(range_long)+range_long[1],
-                   y=47.12,
-                   yend=46.01), col="grey", lty=1)
-plotmap
-
-df_plot_meteo2 <- subset(df_plot_meteo2, df_plot_meteo2$subset2)
-# line y=-1.125 x+ 0.86
-library(StereoMorph)
-orth_vect <- orthogonalProjectionToLine(df_plot_meteo2[, c(1:2)], l1 = c(0, 0.86), 
-                                        l2 = c(1, 0.86-1.125))
-df_plot_meteo2$x1proj <- orth_vect[, 1]
-df_plot_meteo2$x2proj <- orth_vect[, 2]
-df_plot_meteo2$dproj <- sqrt((df_plot_meteo2$x1-df_plot_meteo2$x1proj)^2+
-                               (df_plot_meteo2$x2-df_plot_meteo2$x2proj)^2)
-df_plot_meteo2<- df_plot_meteo2%>%
-  mutate(place_on_line = 1-(x1proj-min(x1proj))/diff(range(x1proj)))%>%
-  group_by(dproj)
-
-df_plot_meteo2_summary <- df_plot_meteo2 %>%
-  dplyr::select(-x1proj, -x2proj, -Station)%>%
-  rename(lat=x1,
-         long=x2, 
-         alt=x3,
-         temp=t)%>%
-  mutate(temp=temp*diff(range_temp)+range_temp[1],
-         lat=lat*diff(range_lat)+range_lat[1],
-         long=long*diff(range_long)+range_long[1],
-         alt=alt*diff(range_height)+range_height[1])%>%
-  pivot_longer(-c("lat", "long", "alt", "temp", "place_on_line", "dproj","subset1", "subset2"))%>%
-  mutate(value=ifelse(substr(name, 1, 4)=="pdf_", value/diff(range_temp), value))%>%
-  mutate(simu=substr(name, 5, 10),
-         name=substr(name, 1, 3))%>%
-  group_by(lat, long, alt, simu)%>%
-  summarise(place_on_line=mean(place_on_line),
-            subset1 = median(subset1),
-            subset2=median(subset2),
-            dproj=mean(dproj),
-            mean = mean(temp*value*(name=="pdf"))*2,
-            q20 = temp[which.min(1e10*(name=="pdf")+abs(value-0.2))],
-            q30 = temp[which.min(1e10*(name=="pdf")+abs(value-0.3))],
-            q10 = temp[which.min(1e10*(name=="pdf")+abs(value-0.1))],
-            q90 = temp[which.min(1e10*(name=="pdf")+abs(value-0.9))],
-            q40 = temp[which.min(1e10*(name=="pdf")+abs(value-0.4))],
-            q60 = temp[which.min(1e10*(name=="pdf")+abs(value-0.6))],
-            q80 = temp[which.min(1e10*(name=="pdf")+abs(value-0.8))],
-            q50 = temp[which.min(1e10*(name=="pdf")+abs(value-0.5))],
-            q70 = temp[which.min(1e10*(name=="pdf")+abs(value-0.7))], 
-            .groups="keep")%>%
-  ungroup()%>%
-  data.frame()
-stations_other <- subset(df_plot_meteo2,
-                         !is.na(df_plot_meteo2$Station)&
-                           df_plot_meteo2$t==0)
-stations_other <- dplyr::select(stations_other, -starts_with("pdf"))
-stations_other <- dplyr::select(stations_other, -starts_with("cdf"))
-stations_other<- stations_other%>%
-  rename(lat=x1,
-         long=x2, 
-         alt=x3,
-         temp=t)%>%
-  mutate(temp=temp*diff(range_temp)+range_temp[1],
-         lat=lat*diff(range_lat)+range_lat[1],
-         long=long*diff(range_long)+range_long[1],
-         alt=alt*diff(range_height)+range_height[1])
-
-plot1 <- 
-  df_plot_meteo2_summary %>%
-  filter(subset1==1)%>%
-  dplyr::select(-mean)%>%
-  pivot_longer(starts_with("q"))%>%
-  mutate(name=paste0(substr(name, 2, 3), "%"))%>%
-  rename(`Quantile level`=name)%>%
-  group_by(lat, long, alt, place_on_line, `Quantile level`)%>%
-  summarise(mean=mean(value),
-            qL=quantile(value, 0.1),
-            qH = quantile(value, 0.9))%>%
-  ggplot(aes(x=place_on_line, y=alt))+
-  geom_ribbon(mapping=aes(ymin=0, ymax=alt), alpha=0.2, col="black", lty=1)+
-  geom_label_repel(data=stations_other, mapping=aes(label=Station))+
-  theme_bw()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal")+
-  ylab("Elevation above sea level [m]")+
-  xlab("Position alongside the slice")
-# geom_vline(data=data.frame(place_on_line=stations_other$place_on_line+
-#                              c(-0.02, +0.01, +0.02, +0.01, 0, 0),
-#                            alt=stations_other$alt),
-#            mapping=aes(xintercept=place_on_line))
-plot1
-
-plot2 <- 
-  df_plot_meteo2_summary %>%
-  filter(subset1==1)%>%
-  dplyr::select(-mean)%>%
-  pivot_longer(starts_with("q"))%>%
-  mutate(name=paste0(substr(name, 2, 3), "%"))%>%
-  rename(`Quantile level`=name)%>%
-  group_by(lat, long, alt, place_on_line, `Quantile level`)%>%
-  summarise(mean=mean(value),
-            qL=quantile(value, 0.1),
-            qH = quantile(value, 0.9))%>%
-  ggplot(aes(x=place_on_line, col=`Quantile level`, fill=`Quantile level`))+
-  geom_line(mapping=aes(y=mean))+
-  geom_ribbon(mapping=aes(ymin=qL, ymax=qH), alpha=0.2, lty=2)+
-  theme_bw()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal")+
-  ylab("Temperature value [°C]")+
-  xlab("Position alongside the slice")+
-  geom_vline(xintercept =stations_other$place_on_line+
-               c(-0.02, +0.01, +0.02, +0.01, 0, 0), lty=2)+
-  geom_label(data=stations_other, mapping=aes(label=Station, 
-                                              y=c(-22, -17, -22,-12,-17,-22), x=place_on_line), inherit.aes = FALSE)
-plot2 
-
-
-plot_grid <- grid.arrange(plotmap+ theme(aspect.ratio=0.5), 
-                          plot1, plot2,
-                          ncol=2, nrow = 2, 
-                          widths = c(3, 3), heights = c(3, 4),
-                          layout_matrix = rbind(c(1, 1),
-                                                c(2, 3)),
-                          respect=FALSE)
-# ggsave(plot_grid, file="./Figures/slice_switzerland.png", 
-#        width=9.5, height=5.5, scale=1.1)
-# ggsave(plot_grid, file="./Figures/slice_switzerland.pdf", 
-#        width=9.5, height=5.5, scale=1.1)
-
-subset <- df_plot_meteo2$x1
-df_plot_meteo_summary <- df_plot_meteo %>%
-  rename(lat=x1,
-         long=x2, 
-         alt=x3,
-         temp=t)%>%
-  mutate(temp=temp*diff(range_temp)+range_temp[1],
-         lat=lat*diff(range_lat)+range_lat[1],
-         long=long*diff(range_long)+range_long[1],
-         alt=alt*diff(range_height)+range_height[1])%>%
-  pivot_longer(-c("lat", "long", "alt", "temp"))%>%
-  mutate(value=ifelse(substr(name, 1, 4)=="pdf_", value/diff(range_temp), value))%>%
-  mutate(simu=substr(name, 5, 10),
-         name=substr(name, 1, 3))%>%
-  group_by(lat, long, alt, simu)%>%
-  summarise(mean = mean(temp*value*(name=="pdf"))*2,
-            q50 = temp[which.min(1e10*(name=="pdf")+abs(value-0.5))],
-            q10 = temp[which.min(1e10*(name=="pdf")+abs(value-0.1))],
-            q90 = temp[which.min(1e10*(name=="pdf")+abs(value-0.9))],
-            q25 = temp[which.min(1e10*(name=="pdf")+abs(value-0.25))],
-            q75 = temp[which.min(1e10*(name=="pdf")+abs(value-0.75))],
-            inv25 = value[which.min(abs(temp-25)+1e10*(name=="pdf"))],
-            inv20 = value[which.min(abs(temp-20)+1e10*(name=="pdf"))],
-            inv15 = value[which.min(abs(temp-15)+1e10*(name=="pdf"))],
-            inv10 = value[which.min(abs(temp-10)+1e10*(name=="pdf"))],
-            invminus10 = value[which.min(abs(temp+10)+1e10*(name=="pdf"))],
-            inv5 = value[which.min(abs(temp-5)+1e10*(name=="pdf"))],
-            invminus5 = value[which.min(abs(temp+5)+1e10*(name=="pdf"))],
-            inv = value[which.min(abs(temp+0)+1e10*(name=="pdf"))], .groups="keep")%>%
-  ungroup()%>%
-  data.frame()
-
-df_plot_meteo_summary <- df_plot_meteo_summary %>%
-  ungroup()%>%
-  pivot_longer(-c("lat", "long", "alt", "simu"))%>%
-  group_by(lat, long, alt, name)%>%
-  summarise(expectation=mean(value),
-            sd=sd(value), .groups="keep")%>%
-  ungroup()%>%
-  rename(quantity=name)%>%
-  pivot_longer(-c("lat", "long", "alt", "quantity"))%>%
-  
-  pivot_wider(names_from = quantity, values_from = value)%>%
-  ungroup()%>%
-  data.frame()
-ind_exp <- df_plot_meteo_summary$name=="expectation"
-plot1 <- ggplot(df_plot_meteo_summary[ind_exp, ],
-                aes(x=long, y=lat, fill=q50))+
-  geom_raster()+
-  theme_void()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal") +
-  scale_fill_viridis(option = "magma", direction = -1, 
-                     name="Expected value [°C]",
+                     ))  +
+  facet_grid(.~paste("Average prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+p_mean
+p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
                      guide = guide_colorbar(
                        direction = "horizontal",
                        barheight = unit(2, units = "mm"),
                        barwidth = unit(50, units = "mm"),
-                       draw.ulim = F,
+                       draw.ulim = FALSE,
                        title.position = 'top',
-                       # some shifting around
                        title.hjust = 0.5,
                        label.hjust = 0.5
-                     ))+ 
-  xlab("Longitude") + ylab("Latitude") 
-plot2 <- ggplot(df_plot_meteo_summary[!ind_exp, ],
-                aes(x=long, y=lat, fill=q50))+
-  geom_raster()+
-  theme_void()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal") +
-  scale_fill_viridis(option = "magma", direction = -1, 
-                     name="Standard deviation [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = F,
-                       title.position = 'top',
-                       # some shifting around
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))+ 
-  xlab("Longitude") + ylab("Latitude") 
-plot_grid <- grid.arrange(plot1, plot2, ncol=2)
-# ggsave(plot_grid, file="./Figures/grid_about_q50.png", 
-#        width=9, height=3.5, scale=1)
-# ggsave(plot_grid, file="./Figures/grid_about_q50.pdf", 
-#        width=9, height=3.5, scale=1)
+                     ))  +
+  facet_grid(.~paste("Standard deviation of the prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+p_sd
 
-plot1 <- ggplot(df_plot_meteo_summary[ind_exp, ],
-                aes(x=long, y=lat, fill=mean))+
-  geom_raster()+
-  theme_void()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal") +
-  scale_fill_viridis(option = "magma", direction = -1, 
-                     name="Expected value [°C]",
+p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
                      guide = guide_colorbar(
                        direction = "horizontal",
                        barheight = unit(2, units = "mm"),
                        barwidth = unit(50, units = "mm"),
-                       draw.ulim = F,
+                       draw.ulim = FALSE,
                        title.position = 'top',
-                       # some shifting around
                        title.hjust = 0.5,
                        label.hjust = 0.5
-                     ))+ 
-  xlab("Longitude") + ylab("Latitude") 
-plot2 <- ggplot(df_plot_meteo_summary[!ind_exp, ],
-                aes(x=long, y=lat, fill=mean))+
-  geom_raster()+
-  theme_void()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal") +
-  scale_fill_viridis(option = "magma", direction = -1, 
-                     name="Standard deviation [°C]",
+                     ))  +
+  facet_grid(.~paste("Median prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+p_median
+
+p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
                      guide = guide_colorbar(
                        direction = "horizontal",
                        barheight = unit(2, units = "mm"),
                        barwidth = unit(50, units = "mm"),
-                       draw.ulim = F,
+                       draw.ulim = FALSE,
                        title.position = 'top',
-                       # some shifting around
                        title.hjust = 0.5,
                        label.hjust = 0.5
-                     ))+ 
-  xlab("Longitude") + ylab("Latitude") 
-plot_grid <- grid.arrange(plot1, plot2, ncol=2)
-# ggsave(plot_grid, file="./Figures/grid_about_mean.png", 
-#        width=9, height=3.5, scale=1)
-# ggsave(plot_grid, file="./Figures/grid_about_mean.pdf", 
-#        width=9, height=3.5, scale=1)
+                     ))  +
+  facet_grid(.~paste("Interquartile range of the prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+p_iq
+
+final_plot <- ggarrange(
+  p_mean, p_sd, p_median, p_iq,
+  ncol = 2, nrow = 2,
+  labels = NULL,  # Optional: Add labels like "A", "B", etc.
+  align = "hv"    # Align horizontally and vertically
+)
+plot(final_plot)
 ```
+
+
+We now represent the corresponding maps.
+```{r plotMeanSwiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 10% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+modality <- "Quantile: 10%"
+desired_order <- c(
+  paste("Mean prediction of the", modality),
+  paste("Standard deviation of the", modality),
+  paste("Median prediction of the", modality),
+  paste("Interquartile range of the", modality)
+)
+df_plot_summary <- df_plot_meteo2 %>%
+  dplyr::filter(Quantity==modality) %>%
+  data.frame()
+
+# Create individual plots for each statistic
+p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanValue)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Average prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+p_mean
+p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Standard deviation of the prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+p_sd
+
+p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Median prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+p_median
+
+p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Interquartile range of the prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+p_iq
+
+final_plot <- ggarrange(
+  p_mean, p_sd, p_median, p_iq,
+  ncol = 2, nrow = 2,
+  labels = NULL,  # Optional: Add labels like "A", "B", etc.
+  align = "hv"    # Align horizontally and vertically
+)
+plot(final_plot)
+```
+
 

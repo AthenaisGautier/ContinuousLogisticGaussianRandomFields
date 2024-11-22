@@ -802,8 +802,8 @@ ggsave(plot_grid, file="./Figures/grid_outofBE5.png",
        width=9.5, height=5.5, scale=1/1.15)
 ggsave(plot_grid, file="./Figures/grid_outofBE5.pdf",
        width=9.5, height=5.5, scale=1/1.15)
-
 ```
+
 # Leveraging SLGP estimators for complex inference
 
 Predict the MAP estimator over all of Switzerland.
@@ -913,7 +913,7 @@ gc()
 
 In this proof of concept, we demonstrate an "inverse problem" approach: given a temperature observation, we use the MAP (Maximum A Posteriori) estimator of the Spatial Logistic Gaussian Process (SLGP) model to identify likely regions in Switzerland where this temperature could have been observed. This allows us to infer potential locations based on specific temperature measurements.
 
-```{r plotInvPb, fig.cap = "An inverse problem solved with SLGP modelling: temeprature based localisation", fig.fullwidth=TRUE, fig.height=4.0, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r plotInvPb, fig.cap = "An inverse problem solved with SLGP modelling: temeprature based localisation", fig.fullwidth=TRUE, fig.height=3.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 load(file="predictionInSwitzerlandMAP.RData")
 plots <- dfSwissMAP %>%
   dplyr::filter(Temperature %in% c(-15, 5, 25)) %>%
@@ -998,8 +998,8 @@ load(file = "./predictionInSwitzerlandMCMC.RData")
 
 ```
 
-
-```{r plotSlicesDrawn, fig.cap = "Two slices across Switzerland", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+We select a slice for our visualisation. Here, we decided to take one slice that would cross through 4 stations.
+```{r plotSlicesDrawn, fig.cap = "A slice across Switzerland", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
 disc_long <- 101
 disc_lat <- 101
 
@@ -1037,6 +1037,7 @@ xini1 <- 0.170
 xend1 <- 0.68
 xini2 <- 0.22
 xend2 <- 0.82
+ind_stations <- c(5, 15, 19, 20)
 plotmap1 <- switzerland + 
   geom_segment(aes(x=xini1*diff(range_long)+range_long[1],
                    xend=xend1*diff(range_long)+range_long[1],
@@ -1047,7 +1048,16 @@ plotmap1 <- switzerland +
                    xend=xend1*diff(range_long)+range_long[1],
                    y=(intercept1-slope1*xini1)*diff(range_lat)+range_lat[1],
                    yend=(intercept1-slope1*xend1)*diff(range_lat)+range_lat[1]), 
-               col="#ffc107", lty=2)
+               col="#ffc107", lty=2)+
+  geom_point(data=stations_discretized[ind_stations, ], 
+             mapping = aes(x=Longitude, y=Latitude))+
+  geom_label_repel(data=stations_discretized[ind_stations, ],
+                   aes(x = Longitude, y = Latitude, label=Station),
+                   size=2, alpha=0.9, 
+                   box.padding = 0.5,  
+                   nudge_y = 0.5,
+                   min.segment.length = 0.1,  
+                   segment.curvature = -1e-20)
 plotmap2 <- switzerland +  geom_segment(aes(x=xini2*diff(range_long)+range_long[1],
                                             xend=xend2*diff(range_long)+range_long[1],
                                             y=(intercept2-slope2*xini2)*
@@ -1070,12 +1080,12 @@ plotmap12 <- plotmap1+geom_segment(aes(x=xini2*diff(range_long)+range_long[1],
                    y=(intercept2-slope2*xini2)*diff(range_lat)+range_lat[1],
                    yend=(intercept2-slope2*xend2)*diff(range_lat)+range_lat[1]), 
                col="#1E88E5", lty=1)
-
-plot(plotmap12)
+plot(plotmap1 )
 ```
 
+We project on this line and compute our quantities of interest (the quantiles).
 
-```{r include=FALSE}
+```{r}
 # Extract the chunks on the slice and project them in 1D
 df_plot_meteo3 <- subset(df_plot_meteo2, df_plot_meteo2$subset1)
 df_plot_meteo3$x2 <- (df_plot_meteo3$Latitude - range_lat[1])/diff(range_lat)
@@ -1135,7 +1145,7 @@ stations_other <- subset(stations_other,
                          stations_other$simu==1)
 ```
 
-We visualise the topographic profile of the first slice with the location of the stations alongside it, as well as our probabilistic joint prediction of the Temperature quantiles along this slice.
+We visualise the topographic profile of the slice with the location of the stations alongside it, as well as our probabilistic joint prediction of the Temperature quantiles along this slice.
 
 ```{r include=FALSE}
 plot1 <- 
@@ -1154,9 +1164,11 @@ plot1 <-
   geom_point(data=stations_other)+
   geom_label_repel(data=stations_other,
                    aes(label=Station),
-                   size=3, alpha=0.9, 
-                   point.padding = 0.5, 
-                   box.padding = 0.,    
+                   size=3, alpha=0.9,  
+                   box.padding = 0.,  
+                   nudge_y = 400,
+                   nudge_x=0,
+                   min.segment.length = 0.1,    
                    segment.curvature = -1e-20)+
   theme_bw()+
   theme(legend.position="bottom", 
@@ -1165,7 +1177,7 @@ plot1 <-
   xlab("Position alongside the slice")
 ```
 
-```{r include=FALSE}
+```{r plotSlice1Full, fig.cap = "A slice across Switzerland: Location on a map, Altitude Profile, Simultaneous quantile prediction and associated uncertainty", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
 plot2 <- 
   df_plot_meteo_summary_1 %>%
   dplyr::select(-mean)%>%
@@ -1187,48 +1199,63 @@ plot2 <-
   xlab("Position alongside the slice")+
   geom_vline(xintercept =stations_other$place_on_line, lty=2)+
   geom_label(data=stations_other, mapping=aes(label=Station, 
-                                              y=27+c(0, -4.5, 0, 0), x=place_on_line), inherit.aes = FALSE)
+                                              y=3.05+c(0, -5, 0, 0), 
+                                              x=place_on_line+c(0.03, 0, 0, 0)), 
+             inherit.aes = FALSE)+
+  coord_cartesian(xlim=c(0, 1), ylim=c(-15, 30))
 
 library(ggpubr)
-plot_grid <- ggarrange(plotmap1+coord_fixed()+ggtitle("North West to South East"), plot1, plot2,
-                          ncol = 1, nrow = 3,align = "v", 
-                          heights = c(2, 2, 4))
+plot_grid <- ggarrange(plotmap1+coord_fixed(), plot1, plot2,
+                       ncol = 1, nrow = 3,align = "v", 
+                       heights = c(2.5, 2.5, 4))
 plot(plot_grid)
 ggsave(plot_grid, file="./Figures/slice_switzerland1.png",
-       width=8.5, height=7., scale=1.1)
+       width=8.5, height=7.5, scale=1.1)
 ggsave(plot_grid, file="./Figures/slice_switzerland1.pdf",
-       width=8.5, height=7., scale=1.1)
+       width=8.5, height=7.5, scale=1.1)
+
 ```
 
-We do the same for the second slice.
-
-
 ```{r include=FALSE}
-# Extract the chunks on the slice and project them in 1D
-df_plot_meteo3 <- subset(df_plot_meteo2, df_plot_meteo2$subset2)
-df_plot_meteo3$x2 <- (df_plot_meteo3$Latitude - range_lat[1])/diff(range_lat)
-df_plot_meteo3$x1 <- (df_plot_meteo3$Longitude - range_long[1])/diff(range_long)
-library(StereoMorph)
-orth_vect <- orthogonalProjectionToLine(df_plot_meteo3[, c("x1", "x2")], 
-                                        l1 = c(0, intercept2), 
-                                        l2 = c(1, -slope2+intercept2))
-df_plot_meteo3$x1proj <- orth_vect[, 1]
-df_plot_meteo3$x2proj <- orth_vect[, 2]
 
-dir2 <- c(1, -slope2)
-dir2 <- dir2 / sqrt(sum(dir2^2))
-df_plot_meteo3$place_on_line <- apply(df_plot_meteo3[, c("x1proj", "x2proj")], 
-                                      1, function(u) {
-                                        return(sum((u - c(0, intercept2)) * dir2))
-                                      })
-plot(df_plot_meteo3$x1, df_plot_meteo3$place_on_line)
+rm(predMAP, predMCMC, predMCMC2, legend1, legend2, grob_pl1, grob_pl1,
+   Lin, mock_df, model1, model2, pl1, pl2,
+   ind_MAP, ind_MCMC, ind_MCMC2, orth_vect, X, 
+   df_plot_meteo_summary_1, df_plot_meteo3, plotmap1, plotmap12, plotmap2, 
+   stations_other, plot1, plot2, plot_grit)
+gc()
+```
 
-r2 <- range(df_plot_meteo3$place_on_line)
-df_plot_meteo3$place_on_line <- (df_plot_meteo3$place_on_line-r2[1])/diff(r2)
+Of course, we can also simply visualise directly some quantities of interest (such as mean expected temperature, mean quantile) and the associated point-wise uncertainty (standard deviation, inter-quartile range) over the map of Switzerland
 
-df_plot_meteo3 <-  df_plot_meteo3%>%
-  dplyr::select(-x1proj, -x2proj, -x1, -x2, -subset1, -subset2)%>%
-  pivot_longer(-c("Latitude", "Longitude", "Altitude", "Temperature", "place_on_line", "Station"))%>%
+```{r}
+
+df_plot_meteo4 <- df_plot_meteo2 %>%
+  dplyr::select(-subset1, -subset2, -Station)%>%
+  group_by(Latitude, Longitude, Altitude)%>%
+  arrange(Temperature)%>%
+  mutate(ID = cur_group_id()) %>% 
+  ungroup()%>%
+  arrange(ID, Temperature)
+t <- as.numeric(df_plot_meteo4$Temperature[1:141])
+value_cdf <- sapply(seq(4), function(i){
+  print(i)
+  tapply(df_plot_meteo4[, 4+i], INDEX=df_plot_meteo4$ID, function(pdf){
+    cdf <-  cumsum(unlist(pdf))
+    r <- range(cdf)
+    cdf <- ((cdf-r[1])/(r[2]-r[1]))[, 1]
+    # invcdf <- approx(x=cdf, y=t, xout=c(0.1, 0.5, 0.9))
+    return(cdf)
+  })
+})
+save(values, file="valuesOverSwitzerland.RData")
+```
+
+```{r}
+load(file="valuesOverSwitzerland.RData")
+df_plot_meteo4 <-  df_plot_meteo4 %>%
+  dplyr::select(-subset1, -subset2, -Station)%>%
+  pivot_longer(-c("Latitude", "Longitude", "Altitude", "Temperature"))%>%
   mutate(simu=substr(name, 5, 11),
          valuepdf=value) %>%
   group_by(Latitude, Longitude, Altitude, simu)%>%
@@ -1238,99 +1265,22 @@ df_plot_meteo3 <-  df_plot_meteo3%>%
   mutate(valuecdf=valuecdf/max(valuecdf))%>%
   ungroup()%>%
   dplyr::select(-c("name", "value"))%>%
-  data.frame()
-
-
-df_plot_meteo_summary_2 <- df_plot_meteo3 %>%
-  group_by(place_on_line, simu)%>%
-  summarise(Altitude=mean(Altitude),
-            mean = mean(Temperature*valuepdf),
-            Station = ifelse(all(is.na(Station)), NA, unique(na.omit(Station))),
+  group_by(Latitude, Longitude, Altitude, simu) %>%
+  summarise(meanT = sum(Temperature*valuepdf)/sum(valuepdf),
             q10 = (Temperature[which.min(abs(valuecdf-0.1))])[1],
-            q20 = (Temperature[which.min(abs(valuecdf-0.2))])[1],
-            q30 = (Temperature[which.min(abs(valuecdf-0.3))])[1],
-            q40 = (Temperature[which.min(abs(valuecdf-0.4))])[1],
             q50 = (Temperature[which.min(abs(valuecdf-0.5))])[1],
-            q60 = (Temperature[which.min(abs(valuecdf-0.6))])[1],
-            q70 = (Temperature[which.min(abs(valuecdf-0.7))])[1],
-            q80 = (Temperature[which.min(abs(valuecdf-0.8))])[1],
             q90 = (Temperature[which.min(abs(valuecdf-0.9))])[1],
             .groups="keep")%>%
   ungroup()%>%
+  pivot_longer(-c("Latitude", "Longitude", "Altitude", "simu"))%>%
+  group_by(Latitude, Longitude, Altitude, name) %>%
+  summarise(meanValue = mean(value),
+            medianValue = median(value),
+            sd = sqrt(var(value)),
+            iq = diff(quantile(value, probs=c(0.25, 0.75))),
+            .groups="keep")%>%
   data.frame()
-
-
-stations_other <- subset(df_plot_meteo_summary_2,
-                         !is.na(df_plot_meteo_summary_2$Station))
-stations_other <- subset(stations_other,
-                         stations_other$simu==1)
 ```
-
-```{r include=FALSE}
-plot1 <- 
-  df_plot_meteo_summary_2 %>%
-  dplyr::select(-mean)%>%
-  pivot_longer(starts_with("q"))%>%
-  mutate(name=paste0(substr(name, 2, 3), "%"))%>%
-  rename(`Quantile level`=name)%>%
-  group_by(Altitude, place_on_line, `Quantile level`)%>%
-  summarise(mean=mean(value),
-            qL=quantile(value, 0.1),
-            qH = quantile(value, 0.9),
-            .groups="keep")%>%
-  ggplot(aes(x=place_on_line, y=Altitude))+
-  geom_ribbon(mapping=aes(ymin=0, ymax=Altitude), alpha=0.2, col="black", lty=1)+
-  geom_point(data=stations_other)+
-  geom_label_repel(data=stations_other,
-                   aes(label=Station),
-                   size=3, alpha=0.9, 
-                   point.padding = 0.5, 
-                   box.padding = 0.,    
-                   segment.curvature = -1e-20)+
-  theme_bw()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal")+
-  ylab("Elevation above sea level [m]")+
-  xlab("Position alongside the slice")
-plot1
-```
-
-```{r include=FALSE}
-plot2 <- 
-  df_plot_meteo_summary_2 %>%
-  dplyr::select(-mean)%>%
-  pivot_longer(starts_with("q"))%>%
-  mutate(name=paste0(substr(name, 2, 3), "%"))%>%
-  rename(`Quantile level`=name)%>%
-  group_by(Altitude, place_on_line, `Quantile level`)%>%
-  summarise(mean=mean(value),
-            qL=quantile(value, 0.1),
-            qH = quantile(value, 0.9),
-            .groups="keep")%>%
-  ggplot(aes(x=place_on_line, col=`Quantile level`, fill=`Quantile level`))+
-  geom_line(mapping=aes(y=mean))+
-  geom_ribbon(mapping=aes(ymin=qL, ymax=qH), alpha=0.2, lty=2)+
-  theme_bw()+
-  theme(legend.position="bottom", 
-        legend.box = "horizontal")+
-  ylab("Temperature value [°C]")+
-  xlab("Position alongside the slice")+
-  geom_vline(xintercept =stations_other$place_on_line, lty=2)+
-  geom_label(data=stations_other, mapping=aes(label=Station, 
-                                              y=27+c(0, -4.5, 0, 0), x=place_on_line), inherit.aes = FALSE)
-
-library(ggpubr)
-plot_grid <- ggarrange(plotmap2+coord_fixed()+ggtitle("North West to South East"), plot1, plot2,
-                          ncol = 1, nrow = 3,align = "v", 
-                          heights = c(2, 2, 4))
-plot(plot_grid)
-ggsave(plot_grid, file="./Figures/slice_switzerland2.png",
-       width=8.5, height=7., scale=1.1)
-ggsave(plot_grid, file="./Figures/slice_switzerland2.pdf",
-       width=8.5, height=7., scale=1.1)
-```
-
-
 
 ```{r eval=FALSE, include=FALSE}
 load(file="predictionInSwitzerlandMCMC.RData")

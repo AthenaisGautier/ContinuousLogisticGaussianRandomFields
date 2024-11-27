@@ -302,7 +302,7 @@ save(df_res, file="resultsMeteo.RData" )
 
 We can now display the resulting optimisation profile. 
 
-```{r include=FALSE, fig.cap = "Optimisation profile for the SLGP's lengthscales on the meteorological application", fig.fullwidth=TRUE, fig.height=8, fig.width=10, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r optimProf, fig.cap = "Optimisation profile for the SLGP's lengthscales on the meteorological application", fig.fullwidth=TRUE, fig.height=6, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 library(scales)
 load(file="resultsMeteo.RData" )
 best_value <- range(df_res$value)
@@ -977,7 +977,7 @@ We further leverage the probabilistic predictions of our SLGP model over Switzer
 
 We begin by loading the predictions of our SLGP model over Switzerland and visualise the slices considered on a map of the country.
 
-```{r eval=FALSE}
+```{r loadpredMCMC1, eval=FALSE}
 # Recombine chunks
 data_chunks <- list()
 
@@ -992,7 +992,7 @@ rm(data_chunks)
 gc()
 ```
 
-```{r include=FALSE}
+```{r loadpredMCMC2, include=FALSE}
 # save(dfSwissMCMC, file = "./predictionInSwitzerlandMCMC.RData")
 load(file = "./predictionInSwitzerlandMCMC.RData")
 
@@ -1085,7 +1085,7 @@ plot(plotmap1 )
 
 We project on this line and compute our quantities of interest (the quantiles).
 
-```{r}
+```{r extractSliceAndPlot}
 # Extract the chunks on the slice and project them in 1D
 df_plot_meteo3 <- subset(df_plot_meteo2, df_plot_meteo2$subset1)
 df_plot_meteo3$x2 <- (df_plot_meteo3$Latitude - range_lat[1])/diff(range_lat)
@@ -1147,7 +1147,7 @@ stations_other <- subset(stations_other,
 
 We visualise the topographic profile of the slice with the location of the stations alongside it, as well as our probabilistic joint prediction of the Temperature quantiles along this slice.
 
-```{r include=FALSE}
+```{r SliceFirstPlot, include=FALSE}
 plot1 <- 
   df_plot_meteo_summary_1 %>%
   dplyr::select(-mean)%>%
@@ -1216,7 +1216,7 @@ ggsave(plot_grid, file="./Figures/slice_switzerland1.pdf",
 
 ```
 
-```{r include=FALSE}
+```{r cleanup, include=FALSE}
 
 rm(predMAP, predMCMC, predMCMC2, legend1, legend2, grob_pl1, grob_pl1,
    Lin, mock_df, model1, model2, pl1, pl2,
@@ -1230,7 +1230,7 @@ Of course, we can also simply visualise directly some quantities of interest (su
 
 We perform the necessary computations
 
-```{r}
+```{r summaryComputeWholeSwiss}
 df_plot_meteo2 <- df_plot_meteo2 %>%
   dplyr::select(-subset1, -subset2, -Station)%>%
   group_by(Latitude, Longitude, Altitude)%>%
@@ -1284,7 +1284,7 @@ rm(qtyOfInt1, qtyOfInt2)
 gc()
 ```
 
-```{r}
+```{r LoadQtiesWholeSwiss}
 load(file="valuesQtyOverSwitzerland.RData")
 df_plot_meteo2 <-  df_plot_meteo2 %>%
   pivot_longer(-c("Latitude", "Longitude", "Altitude", "ID", "Quantity"))%>%
@@ -1298,7 +1298,7 @@ df_plot_meteo2 <-  df_plot_meteo2 %>%
 ```
 
 We now represent the corresponding maps.
-```{r plotMeanSwiss, fig.cap = "Summary of the SLGP probabilistic predictions for the expected temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+```{r plotMeanSwiss, fig.cap = "Summary of the SLGP probabilistic predictions for the expected temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 modality <- "Expected value"
 desired_order <- c(
   paste("Mean prediction of the", modality),
@@ -1340,7 +1340,7 @@ p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanVa
     axis.text.y = element_blank(),    # Remove y-axis text
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
-p_mean
+
 p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
   geom_tile() +
   coord_fixed() +
@@ -1370,7 +1370,7 @@ p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
     axis.text.y = element_blank(),    # Remove y-axis text
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
-p_sd
+
 
 p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
   geom_tile() +
@@ -1401,7 +1401,7 @@ p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = med
     axis.text.y = element_blank(),    # Remove y-axis text
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
-p_median
+
 
 p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
   geom_tile() +
@@ -1432,20 +1432,28 @@ p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
     axis.text.y = element_blank(),    # Remove y-axis text
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
-p_iq
 
-final_plot <- ggarrange(
-  p_mean, p_sd, p_median, p_iq,
-  ncol = 2, nrow = 2,
-  labels = NULL,  # Optional: Add labels like "A", "B", etc.
-  align = "hv"    # Align horizontally and vertically
+
+final_plot <- plot_grid(p_mean+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
+                        p_sd+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
+                        p_median+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+                        p_iq+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+                        ncol = 2, nrow = 2,
+                        align = "hv",             # Align plots both horizontally and vertically
+                        axis = "tblr",            # Ensure axis alignment for all panels
+                        rel_heights = c(1, 1),    # Adjust relative row heights
+                        rel_widths = c(1, 1)      # Adjust relative column widths
 )
 plot(final_plot)
+ggsave(final_plot, file="./Figures/meanSwiss.png",
+       width=8, height=6, scale=1)
+
+ggsave(final_plot, file="./Figures/meanSwiss.pdf",
+       width=8, height=6, scale=1)
 ```
 
 
-We now represent the corresponding maps.
-```{r plotMeanSwiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 10% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+```{r plotq10Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 10% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 modality <- "Quantile: 10%"
 desired_order <- c(
   paste("Mean prediction of the", modality),
@@ -1487,7 +1495,7 @@ p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanVa
     axis.text.y = element_blank(),    # Remove y-axis text
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
-p_mean
+
 p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
   geom_tile() +
   coord_fixed() +
@@ -1517,7 +1525,7 @@ p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
     axis.text.y = element_blank(),    # Remove y-axis text
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
-p_sd
+
 
 p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
   geom_tile() +
@@ -1548,7 +1556,7 @@ p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = med
     axis.text.y = element_blank(),    # Remove y-axis text
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
-p_median
+
 
 p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
   geom_tile() +
@@ -1579,15 +1587,326 @@ p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
     axis.text.y = element_blank(),    # Remove y-axis text
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
-p_iq
 
-final_plot <- ggarrange(
-  p_mean, p_sd, p_median, p_iq,
-  ncol = 2, nrow = 2,
-  labels = NULL,  # Optional: Add labels like "A", "B", etc.
-  align = "hv"    # Align horizontally and vertically
+
+final_plot <- plot_grid(p_mean+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
+                        p_sd+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
+                        p_median+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+                        p_iq+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+                        ncol = 2, nrow = 2,
+                        align = "hv",             # Align plots both horizontally and vertically
+                        axis = "tblr",            # Ensure axis alignment for all panels
+                        rel_heights = c(1, 1),    # Adjust relative row heights
+                        rel_widths = c(1, 1)      # Adjust relative column widths
 )
 plot(final_plot)
+ggsave(final_plot, file="./Figures/q10Swiss.png",
+       width=8, height=6, scale=1)
+
+ggsave(final_plot, file="./Figures/q10Swiss.pdf",
+       width=8, height=6, scale=1)
+```
+
+```{r plotq50Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 50% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+modality <- "Quantile: 50%"
+desired_order <- c(
+  paste("Mean prediction of the", modality),
+  paste("Standard deviation of the", modality),
+  paste("Median prediction of the", modality),
+  paste("Interquartile range of the", modality)
+)
+df_plot_summary <- df_plot_meteo2 %>%
+  dplyr::filter(Quantity==modality) %>%
+  data.frame()
+
+# Create individual plots for each statistic
+p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanValue)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Average prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+
+p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Standard deviation of the prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+
+p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Median prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+
+p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Interquartile range of the prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+
+final_plot <- plot_grid(p_mean+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
+                        p_sd+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
+                        p_median+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+                        p_iq+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+                        ncol = 2, nrow = 2,
+                        align = "hv",             # Align plots both horizontally and vertically
+                        axis = "tblr",            # Ensure axis alignment for all panels
+                        rel_heights = c(1, 1),    # Adjust relative row heights
+                        rel_widths = c(1, 1)      # Adjust relative column widths
+)
+plot(final_plot)
+ggsave(final_plot, file="./Figures/q50Swiss.png",
+       width=8, height=6, scale=1)
+
+ggsave(final_plot, file="./Figures/q50Swiss.pdf",
+       width=8, height=6, scale=1)
+```
+
+```{r plotq90Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 90% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+modality <- "Quantile: 90%"
+desired_order <- c(
+  paste("Mean prediction of the", modality),
+  paste("Standard deviation of the", modality),
+  paste("Median prediction of the", modality),
+  paste("Interquartile range of the", modality)
+)
+df_plot_summary <- df_plot_meteo2 %>%
+  dplyr::filter(Quantity==modality) %>%
+  data.frame()
+
+# Create individual plots for each statistic
+p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanValue)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Average prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+
+p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Standard deviation of the prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+
+p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Median prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+
+p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
+  geom_tile() +
+  coord_fixed() +
+  scale_fill_viridis(option = "inferno", direction = +1,
+                     name = "value [°C]",
+                     guide = guide_colorbar(
+                       direction = "horizontal",
+                       barheight = unit(2, units = "mm"),
+                       barwidth = unit(50, units = "mm"),
+                       draw.ulim = FALSE,
+                       title.position = 'top',
+                       title.hjust = 0.5,
+                       label.hjust = 0.5
+                     ))  +
+  facet_grid(.~paste("Interquartile range of the prediction for: ", modality))+
+  theme_bw() +
+  labs(
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme(
+    panel.grid = element_blank(),     # Remove grid lines
+    axis.ticks.x = element_blank(),   # Remove x-axis ticks
+    axis.text.x = element_blank(),    # Remove x-axis text
+    axis.title.x = element_blank(),   # Remove x-axis label
+    axis.ticks.y = element_blank(),   # Remove y-axis ticks
+    axis.text.y = element_blank(),    # Remove y-axis text
+    axis.title.y = element_blank(),   # Remove y-axis label
+    legend.position = "bottom")
+
+final_plot <- plot_grid(p_mean+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
+                        p_sd+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
+                        p_median+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+                        p_iq+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+                        ncol = 2, nrow = 2,
+                        align = "hv",             # Align plots both horizontally and vertically
+                        axis = "tblr",            # Ensure axis alignment for all panels
+                        rel_heights = c(1, 1),    # Adjust relative row heights
+                        rel_widths = c(1, 1)      # Adjust relative column widths
+)
+plot(final_plot)
+ggsave(final_plot, file="./Figures/q90Swiss.png",
+       width=8, height=6, scale=1)
+
+ggsave(final_plot, file="./Figures/q90Swiss.pdf",
+       width=8, height=6, scale=1)
 ```
 
 

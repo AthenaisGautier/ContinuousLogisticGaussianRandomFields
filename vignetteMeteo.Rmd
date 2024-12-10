@@ -353,6 +353,8 @@ df_res %>%
   xlab("Lengthscale for Temperature (in % of range)")+
   ylab("Negative log-posterior")+ 
   scale_y_continuous(labels = scientific)
+ggsave("./figures/OptimProfile.png", width=8, height=6)
+ggsave("./figures/OptimProfile.pdf", width=8, height=6)
 ```
 
 Using the optimal length scale hyperparameter identified in the grid search, we perform the final SLGP estimation. This provides the best compromise between local accuracy and generalization, as shown by improved prediction results at the test stations.
@@ -999,7 +1001,7 @@ load(file = "./predictionInSwitzerlandMCMC.RData")
 ```
 
 We select a slice for our visualisation. Here, we decided to take one slice that would cross through 4 stations.
-```{r plotSlicesDrawn, fig.cap = "A slice across Switzerland", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+```{r plotSlicesDrawn, fig.cap = "A slice across Switzerland", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 disc_long <- 101
 disc_lat <- 101
 
@@ -1147,7 +1149,7 @@ stations_other <- subset(stations_other,
 
 We visualise the topographic profile of the slice with the location of the stations alongside it, as well as our probabilistic joint prediction of the Temperature quantiles along this slice.
 
-```{r SliceFirstPlot, include=FALSE}
+```{r SliceFirstPlot, echo=FALSE}
 plot1 <- 
   df_plot_meteo_summary_1 %>%
   dplyr::select(-mean)%>%
@@ -1177,7 +1179,7 @@ plot1 <-
   xlab("Position alongside the slice")
 ```
 
-```{r plotSlice1Full, fig.cap = "A slice across Switzerland: Location on a map, Altitude Profile, Simultaneous quantile prediction and associated uncertainty", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
+```{r plotSlice1Full, fig.cap = "A slice across Switzerland: Location on a map, Altitude Profile, Simultaneous quantile prediction and associated uncertainty", fig.fullwidth=TRUE, fig.height=5, fig.width=6, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 plot2 <- 
   df_plot_meteo_summary_1 %>%
   dplyr::select(-mean)%>%
@@ -1298,7 +1300,7 @@ df_plot_meteo2 <-  df_plot_meteo2 %>%
 ```
 
 We now represent the corresponding maps.
-```{r plotMeanSwiss, fig.cap = "Summary of the SLGP probabilistic predictions for the expected temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r plotMeanSwiss, fig.cap = "Summary of the SLGP probabilistic predictions for the expected temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=7, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 modality <- "Expected value"
 desired_order <- c(
   paste("Mean prediction of the", modality),
@@ -1452,8 +1454,7 @@ ggsave(final_plot, file="./Figures/meanSwiss.pdf",
        width=8, height=6, scale=1)
 ```
 
-
-```{r plotq10Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 10% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r plotq10Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 10% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=7, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 modality <- "Quantile: 10%"
 desired_order <- c(
   paste("Mean prediction of the", modality),
@@ -1607,7 +1608,7 @@ ggsave(final_plot, file="./Figures/q10Swiss.pdf",
        width=8, height=6, scale=1)
 ```
 
-```{r plotq50Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 50% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r plotq50Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 50% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=7, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 modality <- "Quantile: 50%"
 desired_order <- c(
   paste("Mean prediction of the", modality),
@@ -1758,7 +1759,7 @@ ggsave(final_plot, file="./Figures/q50Swiss.pdf",
        width=8, height=6, scale=1)
 ```
 
-```{r plotq90Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 90% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r plotq90Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 90% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=7, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 modality <- "Quantile: 90%"
 desired_order <- c(
   paste("Mean prediction of the", modality),

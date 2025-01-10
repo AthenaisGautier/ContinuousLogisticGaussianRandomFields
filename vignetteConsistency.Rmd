@@ -1,7 +1,7 @@
 ---
 title: "Posterior consistency in SLGP estimation."
 author: "Athénaïs Gautier"
-date: "Last revised - October 2024"
+date: "Last revised - January 2025"
 output:
   html_document:
   #bookdown::pdf_document2 :
@@ -9,7 +9,7 @@ output:
   #  toc: FALSE
   #  number_sections: true
     citation_package: natbib
-#bibliography: bibliography.bib
+bibliography: references.bib
 header-includes:
  \usepackage{float}
  \usepackage{tikz}
@@ -59,7 +59,7 @@ library(viridis)
 # Introduction
 
 This document is about exploring the posterior consistency of Spatial Logistic Gaussian Processes (SLGPs) in estimating response distributions given predictor values.
-While a few fundamental concepts of SLGP modeling are stated here for context, readers interested in a deeper understanding of SLGPs and their mathematical foundations are encouraged to refer to our main papers, [Insert Paper Title] [cite].
+While a few fundamental concepts of SLGP modeling are stated here for context, readers interested in a deeper understanding of SLGPs and their mathematical foundations are encouraged to refer to our main paper, @gautier_continuous_2021.
 
 
 In this context, we are interested in learning the distribution of a random response $T_x$, where $x$ represents the predictors (or indexing variable). The challenge arises when the dependence between $T_x$ and $x$ extends beyond just the mean and variance, encompassing more complex features such as the shape of the distribution, its uni-modal versus multi-modal nature, and other distributional characteristics. 
@@ -89,12 +89,12 @@ where $F_{}(\xX, t):=\left( f_{j}(\xX, t) \right)_{1\leq j \leq p}$ is the vecto
 
 In this work, we focus on implementation and practicalities. For this purpose, we consider that our observations are obtained by independent sampling of a reference probability density field $p_0$. By that, we mean that our dataset consist in  $n$ couples of locations and observations $ \{(\xX_i, t_i)\}_{1 \leq i \leq n}$, where the $\xX_i$ are in $[0, 1]$. Moreover, we assume the $t_i$'s are obtained by independent sampling of random variables $T_i$ with respective densities $p_0(\xX_i, \cdot)$.
 
-The posterior distribution of $\boldsymbol \varepsilon $, given data $\{(\xX_i, t_i)\}_{i=1}^n$ can be obtained by replacing Z's expression in Equation~\ref{eq:int_post_hyperpar} and denoting by $\phi_p$ the pdf of the $p$-variate standard normal distribution:
+The posterior distribution of $\varepsilon $, given data $\{(\xX_i, t_i)\}_{i=1}^n$ is:
 \[
 \label{eq:GPposterior}
 \pi[\boldsymbol \epsilon \vert  \mathbf{T} = \mathbf{t} ] \propto   \phi_p\left( \boldsymbol\epsilon \right)  \prod\limits_{i=1}^n \dfrac{e^{\sum_{j=1}^p \epsilon_j f_{j}(\xX_i, t_i)}}{ \int_t e^{\sum_{j=1}^p \epsilon_j f_{j}(\xX_i, u)}  \,du}
 \]
-this formulation allows us to perform posterior inference, here maximum a posteriori (MAP) estimation.
+where $\phi_p$ is the pdf of the $p$-variate standard normal distribution. This formulation allows us to perform posterior inference, here maximum a posteriori (MAP) estimation.
 
 It is important to note that the choice of basis functions is flexible, provided they form a sufficiently expressive and numerically stable family. In this work, we propose using Fourier-type bases, consisting of multivariate sines and cosines. These bases are not only expressive and well-behaved numerically, but they also allow for an intuitive understanding of spatial regularity through their connection to spectral approximations of GPs, commonly referred to as the Random Fourier Feature (RFF) approach.
 
@@ -331,7 +331,7 @@ With the synthetic data now fully prepared, we can proceed to the estimation pha
 
 # Sample-based inference with SLGP modelling
 
-With the synthetic data prepared, we now proceed to the estimation phase to evaluate the performance of SLGP-based models. This phase involves conducting inference experiments under various conditions to comprehensively assess the models' ability to recover the underlying distributions.
+This phase involves conducting inference experiments under various conditions to comprehensively assess the models' ability to recover the underlying distributions.
 
 To achieve this, we vary the following over different experiments:
 
@@ -358,7 +358,7 @@ To ensure the robustness of our results and mitigate the impact of random seed v
 
 By conducting these 160,000 experiments, we aim to thoroughly evaluate the posterior consistency and overall performance of SLGP-based models across diverse scenarios, varying in data sparsity, model smoothness, and basis function complexity.
 
-For reproducibility, we provide the code used to perform the analyses. However, due to the independence of each experiment, we executed them in parallel on, UBELIX the high-performance computing cluster of the University of Bern.[TODO: citation]
+For reproducibility, we provide the code used to perform the analyses. However, due to the independence of each experiment, we executed them in parallel on, UBELIX the high-performance computing cluster of the University of Bern.
 
 ```{r estimationnoteval, eval=FALSE}
 listN <- c(5, 10, 
@@ -755,4 +755,5 @@ for(ref in seq(4)){
 
 ![Estimation in the setting where the reference field has the highest spatial regularity, but the SLGP is based on an exponential kernel (least smooth setting considered).](./figures/ref4mod1nFreq500.png){ width=100% }
 
-
+<hr>
+# References

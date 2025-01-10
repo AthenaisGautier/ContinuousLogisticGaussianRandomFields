@@ -34,7 +34,7 @@ t'],[\mathbf{x}', t']) - 2 k([\mathbf{x}, t],
 Consider the SLGP $Y$ induced by a centred GP $Z$ with covariance kernel $k$: 
 
 $$Y_{\mathbf{x}, t} := \dfrac{e^{Z_{\mathbf{x},
-t}}}{\int_\mathcal{T}e^{Z_{\mathbf{x}, u}} \,d\lambda(u) } \text{ for
+t}}}{\int_\mathcal{T}e^{Z_{\mathbf{x}, u}} \,d\lambda(u) } \ \text{ for
 all } (\mathbf{x}, t) \in D \times \mathcal{T}
 $$
 
@@ -65,6 +65,8 @@ Where for two pdfs $f_1$, $f_2$ on $\mathcal{T}$:
 * $V$ denotes a squared log-ratio dissimilarity: $V(f_1, f_2) := \int_\mathcal{T} \left( \log \frac{ f_1(u)}{f_2(u)}\right)^2 \,du$
 
 * $d_{TV}$ denotes the Total Variation distance: $d_{TV}(f_1, f_2) := \int_\mathcal{T} \left\vert f_1(u) - f_2(u) \right\vert \,du$
+
+We performed numerical validation of our bnound's tightness, yielding the following figure.
 
 <img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ratesHolder.png" alt="Illustration of the rates" width="700"/>
 

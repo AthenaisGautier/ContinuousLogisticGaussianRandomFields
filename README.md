@@ -123,6 +123,23 @@ We also offer to visualise the MAP estimates of the density fields for different
 
 [The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteMeteo.html)
 
+In this document, we considered the oroblem of prediction temperature distributions accross Switzerland. We use measurements made at meteorological stations as our dataset.
+
+<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/map_switzerland.png" alt="Stations in Switzerland" width="700"/>
+
+This application showcases the importance of hyper-parameters selection for SLGP-based estimation. 
+
+We validate our approach by prediction temperature distributions at stations left out of the training dataset.
+
+This estimation yields predictions of the temperature distributions over all of Switzerland, enabling advanced statistical inference. 
+For instance, one can perform stochastic inversion using the resulting SLGP:
+<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/invPb.png" alt="Inverse pbs with SLGP" width="700"/>
+
+
+We can also perform simultaneous quantile estimation. For visualisation purpose we display this over a single slice here.
+
+<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/slice_switzerland1.png" alt="Temperature quantiles in Switzerland" width="700"/>
+
 ## Brief visualisation of our variance heuristic
 
 [The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteHeuristicVariance.html)

@@ -1,7 +1,7 @@
 ---
 title: "Unconditional simulations of SLGPs, and computing continuity rates."
 author: "Athénaïs Gautier"
-date: "Last revised - October 2024"
+date: "Last revised - January 2025"
 output:
   html_document:
   #bookdown::pdf_document2 :
@@ -156,7 +156,7 @@ install.packages(paste0("https://cran.r-project.org/src/contrib/Archive/",
 
 
 Now, on a regular grid of size $51\times 51$, we can perform unconditional simulations of GPs with either Exponential or Gaussian kernel :
-```{r, fig.fullwidth=TRUE, fig.height=3, fig.cap = "Unconditional simulations of GPs with our two kernels of interest", fig.pos="H", warning=FALSE, message=FALSE}
+```{r, fig.fullwidth=TRUE, fig.height=3, fig.width=6, fig.align="center", fig.cap = "Unconditional simulations of GPs with our two kernels of interest", fig.pos="H", warning=FALSE, message=FALSE}
 u <- seq(0, 1,, 51)
 dfGrid <- data.frame(expand.grid(u, u))
 colnames(dfGrid) <- c("x", "t")
@@ -177,9 +177,45 @@ dfGrid$`GP with Gaussian kernel` <- RFsimulate(model=mod2,
 dfGrid %>%
   pivot_longer(-c("x", "t"))%>%
   ggplot()+
-  geom_raster(mapping=aes(x=x, y=t, fill=value))+
-  facet_grid(.~name)+
-  theme_bw()
+  geom_raster(mapping=aes(x=x, y=t, fill=value), interpolate=TRUE)+
+  facet_grid(.~name)+ 
+  scale_fill_viridis(option = "viridis",
+                     guide = guide_colorbar(nrow = 1,
+                                            title = "GP's value",
+                                            barheight = unit(2, units = "mm"),
+                                            barwidth = unit(55, units = "mm"),
+                                            title.position = 'top',
+                                            label.position = "bottom",
+                                            title.hjust = 0.5))+
+  theme_bw()+ theme(legend.position = "bottom")
+```
+
+
+```{r, fig.fullwidth=TRUE, fig.height=4,fig.align="center",  fig.cap = "Unconditional simulations of SLGPs with our two kernels of interest", fig.pos="H", warning=FALSE, message=FALSE}
+scale_factor <- 0.05
+
+dfGrid %>%
+  dplyr::filter(x %in% seq(0, 1,, 26))%>%
+  pivot_longer(-c("x", "t"))%>%
+  rename(GP=value)%>%
+  group_by(x, name)%>%
+  mutate(SLGP=exp(GP-max(GP))/mean(exp(GP-max(GP))),
+         name=paste0("SL", name))%>%
+  ggplot(aes(x=t, ymax=scale_factor*SLGP+x, ymin=x, group=-x, fill=x))+
+  geom_ribbon(col="grey", alpha=0.9)+  # Add grey borders around each tile
+  scale_fill_viridis(option = "plasma",
+                     guide = guide_colorbar(nrow = 1,
+                                            title = "Indexing variable x",
+                                            barheight = unit(2, units = "mm"),
+                                            barwidth = unit(55, units = "mm"),
+                                            title.position = 'top',
+                                            label.position = "bottom",
+                                            title.hjust = 0.5))+
+  facet_grid(.~name)+ 
+  theme_bw()+ 
+  theme(legend.position = "bottom",
+                    axis.text.y = element_blank(),
+                    axis.ticks.y = element_blank(), axis.line.y = element_blank())
 ```
 
 \newpage
@@ -187,7 +223,7 @@ dfGrid %>%
 
 In turn, we can simulate GPs (and transform them into SLGPs) with a step-size for $x$ that becomes increasingly smaller when getting close to zero.
 
-```{r, fig.fullwidth=TRUE, fig.height=2, fig.cap = "The x values used, with smaller step sizes around zero (log-scale).", fig.pos="H", warning=FALSE, message=FALSE}
+```{r, fig.fullwidth=TRUE, fig.height=2,fig.align="center", fig.cap = "The x values used, with smaller step sizes around zero (log-scale).", fig.pos="H", warning=FALSE, message=FALSE}
 # Define parameters for the sequence generation
 start_values <- c(0, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1)
 end_values <- c(1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1)
@@ -215,11 +251,9 @@ ggplot()+
   labs(y = NULL, x="x values at wich we simulate SLGPs") + 
   guides(y = "none")
 ```
- We use 100 repetitions (10 batches of 10 simulations, to accommodate for laptops with small memories).
+We use 100 repetitions (10 batches of 10 simulations, to accommodate for laptops with small memories).
 
 ```{r, eval=FALSE, warning=FALSE, message=FALSE}
-
-
 L <- list()
 L[[1]] <- L[[2]] <- list()
 deb <- Sys.time()
@@ -320,7 +354,7 @@ rm(df_empirical1)
 \newpage
 Finally, we re-scale (by a constant) every curve to display everything on the same plot with the same plot, and produce the Figure from the paper.
 
-```{r fig.cap="Empirical and theoretical rates, as estimated on unconditional simulations", fig.fullwidth=TRUE, fig.height=5, fig.pos="H", warning=FALSE, message=FALSE}
+```{r fig.cap="Empirical and theoretical rates, as estimated on unconditional simulations", fig.fullwidth=TRUE, fig.align="center", fig.height=5, fig.width=7, fig.pos="H", warning=FALSE, message=FALSE}
 max_x <- 0.01
 df_empirical$type <- "Empirical rates"
 df_theoretical$type <- "Theoretical rates"
@@ -338,11 +372,12 @@ df_plot%>%
   coord_cartesian(ylim=c(0, 1), xlim=c(0, max_x))+
   ylab("Re-scaled dissimilarity")+
   theme(legend.position = "bottom",
-        axis.text.x = element_text(angle = 45, hjust=1))+
-  scale_linewidth_manual( values = c("Empirical rates"=1,
-                                     "Theoretical rates"=2) ) +
-  scale_linetype_manual( values = c("Empirical rates"=1,
-                                    "Theoretical rates"=2))+
+        axis.text.x = element_text(angle = 45, hjust=1),
+        legend.key.width = unit(1.5, "cm"))+
+  scale_linewidth_manual( values = c("Empirical rates"=0.5,
+                                     "Theoretical rates"=1.25) ) +
+  scale_linetype_manual(values = c("Empirical rates"="solid",
+                                   "Theoretical rates"="dashed"))+
   guides(color = guide_legend(nrow=1,
                               title="Kernel considered",
                               direction = "horizontal",
@@ -367,6 +402,6 @@ df_plot%>%
   scale_x_continuous(labels = function(x)format(x, scientific = TRUE,  digits = 1), 
                      breaks=seq(0, max_x,, 5))
 ggsave(paste0("./figures/ratesHolder.png"),
-       width=6, height=5)
+       width=7, height=5)
 
 ```

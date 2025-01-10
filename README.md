@@ -1,5 +1,5 @@
 # Continuous logistic Gaussian random measure fields for spatial distributional modelling
-### By Athenais Gautier and David Ginsbourger
+### By Athénaïs Gautier and David Ginsbourger
 
 This repository contains the code and data associated with our paper titled "Continuous logistic Gaussian random measure fields for spatial distributional modelling". The detailed research can be accessed through our preprint: [arXiv:2110.02876](https://arxiv.org/abs/2110.02876).
 
@@ -27,9 +27,7 @@ There exist $C, \alpha_1, \alpha_2>0$ such that for all $\mathbf{x},
 
 $$k([\mathbf{x}, t], [\mathbf{x}, t]) + k([\mathbf{x}',
 t'],[\mathbf{x}', t']) - 2 k([\mathbf{x}, t],
-[\mathbf{x}', t']) \leq C \cdot \max(\Vert \mathbf{x}-
-\mathbf{x}' \Vert_\infty ^{\alpha_1}, \Vert t - t' \Vert_\infty
-^{\alpha_2})$$
+[\mathbf{x}', t']) \leq C \cdot \max(\Vert \mathbf{x} - \mathbf{x}' \Vert_\infty ^{\alpha_1}, \vert t - t' \vert ^{\alpha_2})$$
 
 **Theorem 2**
 

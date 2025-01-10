@@ -1,7 +1,7 @@
 ---
 title: "An application: SLGP-based prediction of temperature distributions at meteorological stations in Switzerland."
 author: "Athénaïs Gautier"
-date: "Last revised - October 2024"
+date: "Last revised - January 2025"
 output:
   html_document:
   #bookdown::pdf_document2 :
@@ -55,11 +55,11 @@ library(ggplot2)
 library(viridis)
 ```
 
-## Introduction
+# Introduction
 
-In this vignette, we apply the Spatial Logistic Gaussian Process (SLGP) model to estimate temperature distributions at meteorological stations across Switzerland. This example illustrates SLGP's capacity to model spatial temperature variations based on location-specific factors, such as latitude, longitude, and altitude, using real meteorological data made available by MeteoSwiss [@meteorology_climatological_2019].
+In this vignette, we apply the Spatial Logistic Gaussian Process (SLGP) model to estimate temperature distributions at meteorological stations across Switzerland. This example illustrates SLGP's capacity to model spatial temperature variations based on location-specific factors, such as latitude, longitude, and altitude, using real meteorological data made available by MeteoSwiss @meteorology_climatological_2019. The altitude profile of Switzerland is based on data from @swisstopo_digital_2019.
 
-## Data Loading and Visualization
+# Data Loading and Visualization
 
 We begin by loading and visualizing the dataset of daily average temperatures at 29 meteorological stations across Switzerland. This initial step provides insight into temperature variability across different regions and altitudes.
 
@@ -94,7 +94,7 @@ switzerland <- ggplot() +
   xlab("Longitude") + ylab("Latitude") 
 ```
 
-```{r mapplot1, include=FALSE, fig.cap="Meteorological stations where measurements are available", fig.fullwidth=TRUE, fig.height=8, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r mapplot1, fig.cap="Meteorological stations where measurements are available", fig.fullwidth=TRUE, fig.height=8, fig.width=8, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 library(ggrepel)
 plot_map <-switzerland+
   # theme_classic()+
@@ -108,10 +108,11 @@ plot_map <-switzerland+
                    nudge_x = .25,
                    nudge_y = .25,
                    segment.curvature = -1e-20)+
-  theme(plot.title=element_text(size=10, hjust = 0.5))
+  theme(plot.title=element_text(size=10, hjust = 0.5))+
+  coord_fixed(ratio = 348/220)
 plot_map
-# ggsave("./figures/map_switzerland.png", width=8, height=4.5)
-# ggsave("./figures/map_switzerland.pdf", width=8, height=4.5)
+ggsave("./figures/map_switzerland.png", width=8, height=4.5)
+ggsave("./figures/map_switzerland.pdf", width=8, height=4.5)
 ```
 
 To ensure a smooth modeling process, we prepare the dataset by renaming variables for clarity and storing their respective value ranges. This step facilitates easier handling of variables in subsequent modeling steps.
@@ -163,7 +164,7 @@ plotDensities
 #ggsave(plotDensities+guides(col = "none") , file="./Figures/empiricalMeteo.pdf", width=8.5, height=7, scale=1.1)
 
 ```
-## Initial SLGP Estimation with Arbitrary Hyperparameters
+# Initial SLGP Estimation with Arbitrary Hyperparameters
 
 
 To understand the model's baseline behavior, we perform an initial SLGP estimation using arbitrary hyperparameters. This first run provides insight into the model’s ability to capture the temperature distribution’s overall structure.
@@ -250,7 +251,7 @@ plotDensities +
 
 This time, while the model provides accurate temperature estimates at stations within the training set, it generalizes poorly to test stations. Using too small a length scale restricts the model’s spatial aggregation, limiting the reach of spatial information to a very local scope.
 
-## Selecting an Optimal Length Scale with Grid Search
+# Selecting an Optimal Length Scale with Grid Search
 
 To balance between overly small and overly large length scales, we propose selecting an appropriate length-scale hyperparameter via a grid search, aiming to find a balanced length scale that performs well across different spatial contexts. This grid search involves computing the (unnormalized) posterior for various candidate length scales, and selecting the hyperparameter value that maximizes it. This approach seeks a compromise between the previously observed limitations: length scales that are too small, which limit spatial aggregation, and those that are too large, which oversmooth local variations.
 
@@ -432,7 +433,7 @@ plotDensities +
        subtitle = "Empirical distributions in the dataset and SLGP MAP estimator with optimised hyperparameters.",
        col="Curve represented") 
 ```
-## Visualising results at some stations both in and out of the training set
+# Visualising results at some stations both in and out of the training set
 
 ```{r preparepanelplots, include=FALSE, warning=FALSE, message=FALSE}
 
@@ -566,7 +567,7 @@ plot_map <-switzerland+
   ggtitle("Stations location.") + 
   theme(plot.title=element_text(size=10, hjust = 0.5))
 
-plot_grid <- grid.arrange(plot_map, 
+plot_grid <- grid.arrange(plot_map+coord_fixed(ratio = 348/220), 
                           Lin[[19]][["data"]]+ 
                             theme(legend.position="none"), 
                           Lin[[2]][["data"]]+ 
@@ -586,12 +587,14 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-#ggsave(plot_grid, file="./Figures/grid_mixBE.png", width=9.5, height=5.5, scale=1/1.15)
-#ggsave(plot_grid, file="./Figures/grid_mixBE.pdf", width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_mixBE.png",
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_mixBE.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
-## Visualising results at some stations both out of the training set
+## Visualising results at some stations in of the training set
 ```{r figout, fig.cap = "SLGP estimation for some other stations in the training set (=stations out of the Canton of Bern).", fig.fullwidth=TRUE, fig.height=5.5, fig.width=9.5, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 
 ind_stations <- c(3, 28, 11, 13, 15)
@@ -607,7 +610,7 @@ plot_map <-switzerland+
   ggtitle("Stations location.") + 
   theme(plot.title=element_text(size=10, hjust = 0.5))
 
-plot_grid <- grid.arrange(plot_map, 
+plot_grid <- grid.arrange(plot_map+coord_fixed(ratio = 348/220),  
                           Lin[[3]][["data"]]+ 
                             theme(legend.position="none"), 
                           Lin[[28]][["data"]]+ 
@@ -627,8 +630,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-#ggsave(plot_grid, file="./Figures/grid_outofBE.png", width=9.5, height=5.5, scale=1/1.15)
-#ggsave(plot_grid, file="./Figures/grid_outofBE.pdf",width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE.png",
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE.pdf",
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -647,7 +652,7 @@ plot_map <-switzerland+
   ggtitle("Stations location.") + 
   theme(plot.title=element_text(size=10, hjust = 0.5))
 
-plot_grid <- grid.arrange(plot_map, 
+plot_grid <- grid.arrange(plot_map+coord_fixed(ratio = 348/220),  
                           Lin[[5]][["data"]]+ 
                             theme(legend.position="none"), 
                           Lin[[29]][["data"]]+ 
@@ -667,8 +672,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-#ggsave(plot_grid, file="./Figures/grid_outofBE2.png", width=9.5, height=5.5, scale=1/1.15)
-#ggsave(plot_grid, file="./Figures/grid_outofBE2.pdf", width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE2.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE2.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -687,7 +694,7 @@ plot_map <-switzerland+
   ggtitle("Stations location.") + 
   theme(plot.title=element_text(size=10, hjust = 0.5))
 
-plot_grid <- grid.arrange(plot_map, 
+plot_grid <- grid.arrange(plot_map+coord_fixed(ratio = 348/220),  
                           Lin[[7]][["data"]]+ 
                             theme(legend.position="none"), 
                           Lin[[23]][["data"]]+ 
@@ -707,8 +714,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-#ggsave(plot_grid, file="./Figures/grid_outofBE3.png", width=9.5, height=5.5, scale=1/1.15)
-#ggsave(plot_grid, file="./Figures/grid_outofBE3.pdf", width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE3.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE3.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -727,7 +736,7 @@ plot_map <-switzerland+
   ggtitle("Stations location.") + 
   theme(plot.title=element_text(size=10, hjust = 0.5))
 
-plot_grid <- grid.arrange(plot_map, 
+plot_grid <- grid.arrange(plot_map+coord_fixed(ratio = 348/220),  
                           Lin[[21]][["data"]]+ 
                             theme(legend.position="none"), 
                           Lin[[9]][["data"]]+ 
@@ -747,8 +756,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-#ggsave(plot_grid, file="./Figures/grid_outofBE4.png", width=9.5, height=5.5, scale=1/1.15)
-#ggsave(plot_grid, file="./Figures/grid_outofBE4.pdf", width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE4.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE4.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
 
 ```
 
@@ -769,7 +780,7 @@ plot_map <-switzerland+
   ggtitle("Stations location.") + 
   theme(plot.title=element_text(size=10, hjust = 0.5))
 
-plot_grid <- grid.arrange(plot_map, 
+plot_grid <- grid.arrange(plot_map+coord_fixed(ratio = 348/220),  
                           Lin[[17]][["data"]]+ 
                             theme(legend.position="none"), 
                           Lin[[22]][["data"]]+ 
@@ -788,8 +799,10 @@ plot_grid <- grid.arrange(plot_map,
                                                 c(7, 7, 7),
                                                 c(8, 8, 8)))
 plot(plot_grid)
-#ggsave(plot_grid, file="./Figures/grid_outofBE5.png", width=9.5, height=5.5, scale=1/1.15)
-#ggsave(plot_grid, file="./Figures/grid_outofBE5.pdf", width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE5.png", 
+       width=9.5, height=5.5, scale=1/1.15)
+ggsave(plot_grid, file="./Figures/grid_outofBE5.pdf", 
+       width=9.5, height=5.5, scale=1/1.15)
 ```
 
 # Leveraging SLGP estimators for complex inference
@@ -897,7 +910,7 @@ gc()
 
 ... And now, let us use these!
 
-## Temperature-Based Localisation in Switzerland: A Proof of Concept.
+# Temperature-Based Localisation in Switzerland: A Proof of Concept.
 
 In this proof of concept, we demonstrate an "inverse problem" approach: given a temperature observation, we use the MAP (Maximum A Posteriori) estimator of the Spatial Logistic Gaussian Process (SLGP) model to identify likely regions in Switzerland where this temperature could have been observed. This allows us to infer potential locations based on specific temperature measurements.
 
@@ -910,7 +923,8 @@ plots <- dfSwissMAP %>%
   split(.$Temperature) %>%
   lapply(function(data) {
     ggplot(data) +
-      geom_raster(mapping = aes(x = Longitude, y = Latitude, fill = pdf_1), alpha = 0.5) +
+      geom_raster(mapping = aes(x = Longitude, y = Latitude, fill = pdf_1), 
+                  alpha = 0.5) +
       theme_bw() +
       scale_fill_viridis(option = "viridis", direction = +1,
                          name = "Probability density",
@@ -937,7 +951,8 @@ plots <- dfSwissMAP %>%
         axis.ticks.y = element_blank(),   # Remove y-axis ticks
         axis.text.y = element_blank(),    # Remove y-axis text
         axis.title.y = element_blank(),   # Remove y-axis label
-        legend.position = "bottom")
+        legend.position = "bottom")+
+      coord_fixed(ratio = 348/220)
   })
 
 # Arrange plots with cowplot
@@ -959,7 +974,7 @@ These results are consistent with Switzerland's diverse geography:
 
 This approach offers a sight into the potential of SLGP for solving stochastic inverse problems. 
 
-## Probabilistic prediction of quantities of interest
+# Probabilistic prediction of quantities of interest
 
 We further leverage the probabilistic predictions of our SLGP model over Switzerland. We will visualize the joint quantile estimates along with their associated uncertainties provided by our model. However,directly visualising and aggregating these quantiles and uncertainties in 2D can be challenging. To provide clearer and more intuitive visualisations, we focus on an arbitrary slice crossing Switzerland. This slice allows us to explore the model’s predictions and uncertainties in a more interpretable way.
 
@@ -977,7 +992,6 @@ for (i in 1:141) {  # Replace with actual number of chunks
 # Recombine all chunks into a single object if it's a data frame or list
 dfSwissMCMC <- do.call("rbind", data_chunks)  # Adjust based on data structure
 rm(data_chunks)
-gc()
 ```
 
 ```{r loadpredMCMC2, include=FALSE}
@@ -1003,8 +1017,6 @@ stations_discretized <- stations%>%
 
 df_plot_meteo2 <- merge(dfSwissMCMC, stations_discretized, 
                         by=c("Latitude", "Longitude"), all.x = TRUE)
-
-gc()
 
 slope1 <- 1.00
 intercept1 <- 0.836635
@@ -1068,7 +1080,7 @@ plotmap12 <- plotmap1+geom_segment(aes(x=xini2*diff(range_long)+range_long[1],
                    y=(intercept2-slope2*xini2)*diff(range_lat)+range_lat[1],
                    yend=(intercept2-slope2*xend2)*diff(range_lat)+range_lat[1]), 
                col="#1E88E5", lty=1)
-plot(plotmap1 )
+plot(plotmap1+coord_fixed(ratio = 348/220) )
 ```
 
 We project on this line and compute our quantities of interest (the quantiles).
@@ -1193,12 +1205,14 @@ plot2 <-
   coord_cartesian(xlim=c(0, 1), ylim=c(-15, 30))
 
 library(ggpubr)
-plot_grid <- ggarrange(plotmap1+coord_fixed(), plot1, plot2,
+plot_grid <- ggarrange(plotmap1+coord_fixed(ratio = 348/220), plot1, plot2,
                        ncol = 1, nrow = 3,align = "v", 
                        heights = c(2.5, 2.5, 4))
 plot(plot_grid)
-#ggsave(plot_grid, file="./Figures/slice_switzerland1.png", width=8.5, height=7.5, scale=1.1)
-#ggsave(plot_grid, file="./Figures/slice_switzerland1.pdf", width=8.5, height=7.5, scale=1.1)
+ggsave(plot_grid, file="./Figures/slice_switzerland1.png", 
+       width=8.5, height=7.5, scale=1.1)
+ggsave(plot_grid, file="./Figures/slice_switzerland1.pdf", 
+       width=8.5, height=7.5, scale=1.1)
 
 ```
 
@@ -1235,6 +1249,10 @@ df_plot_meteo_summary_1 %>%
              inherit.aes = FALSE)+
   coord_cartesian(xlim=c(0, 1), ylim=c(0, 30))+
   ggtitle("Simultaneous quantile estimation, where the trend of -0.65°C per 100m is removed.")
+ggsave(plot_grid, file="./Figures/slice_switzerland1detrend.png", 
+       width=8.5, height=7.5, scale=1.1)
+ggsave(plot_grid, file="./Figures/slice_switzerland1detrend.pdf", 
+       width=8.5, height=7.5, scale=1.1)
 ```
 
 
@@ -1301,12 +1319,22 @@ df_plot_meteo2 <- df_plot_meteo2 %>%
 colnames(qtyOfInt1) <- colnames(qtyOfInt2) <- seq(1000)
 df_plot_meteo2 <- cbind(df_plot_meteo2[IDVec, ], namesVec, rbind(qtyOfInt1, qtyOfInt2))
 colnames(df_plot_meteo2)[5] <- c("Quantity")
-save(df_plot_meteo2, file="valuesQtyOverSwitzerland.RData")
+split_data <- split(df_plot_meteo2, cut(seq_len(nrow(df_plot_meteo2)), 3, labels = FALSE))
+
+# Save each part into a separate file
+for (i in seq_along(split_data)) {
+  file_name <- paste0("valuesQtyPart", i, ".RData")
+  save(split_data[[i]], file = file_name)
+  cat("Saved file:", file_name, "\n")  # Confirmation message
+}
+# save(df_plot_meteo2, file="valuesQtyOverSwitzerland.RData")
+
 rm(qtyOfInt1, qtyOfInt2)
 gc()
 ```
 
 ```{r LoadQtiesWholeSwiss}
+
 load(file="valuesQtyOverSwitzerland.RData")
 df_plot_meteo2 <-  df_plot_meteo2 %>%
   pivot_longer(-c("Latitude", "Longitude", "Altitude", "ID", "Quantity"))%>%
@@ -1321,6 +1349,8 @@ df_plot_meteo2 <-  df_plot_meteo2 %>%
 
 We now represent the corresponding maps.
 ```{r plotMeanSwiss, fig.cap = "Summary of the SLGP probabilistic predictions for the expected temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=6, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+library(scales)
+
 modality <- "Expected value"
 desired_order <- c(
   paste("Mean prediction of the", modality),
@@ -1331,22 +1361,34 @@ desired_order <- c(
 df_plot_summary <- df_plot_meteo2 %>%
   dplyr::filter(Quantity==modality) %>%
   data.frame()
-
+lower_limit <- -20
+upper_limit <- 30
+lower_limit2 <- 0
+upper_limit2 <- 8
 # Create individual plots for each statistic
 p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanValue)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit, upper_limit), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit, upper_limit, 10), # Customize tick positions
+    labels = c(paste0("<", lower_limit), 
+               seq(lower_limit+10, upper_limit-10, 10) , 
+               paste0(">", upper_limit)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )   +
   facet_grid(.~paste("Average prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1366,17 +1408,25 @@ p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanVa
 p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit2, upper_limit2), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit2, upper_limit2, 2), # Customize tick positions
+    labels = c(seq(lower_limit2, upper_limit2-2, 2) , 
+               paste0(">", upper_limit2)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )  +
   facet_grid(.~paste("Standard deviation of the prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1397,17 +1447,26 @@ p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
 p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit, upper_limit), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit, upper_limit, 10), # Customize tick positions
+    labels = c(paste0("<", lower_limit), 
+               seq(lower_limit+10, upper_limit-10, 10) , 
+               paste0(">", upper_limit)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )   +
   facet_grid(.~paste("Median prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1428,17 +1487,25 @@ p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = med
 p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit2, upper_limit2), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit2, upper_limit2, 2), # Customize tick positions
+    labels = c(seq(lower_limit2, upper_limit2-2, 2) , 
+               paste0(">", upper_limit2)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  ) +
   facet_grid(.~paste("Interquartile range of the prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1456,20 +1523,27 @@ p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
     legend.position = "bottom")
 
 
-final_plot <- plot_grid(p_mean+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
-                        p_sd+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
-                        p_median+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
-                        p_iq+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+final_plot <- plot_grid(p_mean+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
+                        p_sd+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) ,  
+                        p_median+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
+                        p_iq+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
                         ncol = 2, nrow = 2,
-                        align = "hv",             # Align plots both horizontally and vertically
+                        align = "hv",             
                         axis = "tblr",            # Ensure axis alignment for all panels
                         rel_heights = c(1, 1),    # Adjust relative row heights
                         rel_widths = c(1, 1)      # Adjust relative column widths
 )
 plot(final_plot)
-#ggsave(final_plot, file="./Figures/meanSwiss.png",width=8, height=6, scale=1)
-
-#ggsave(final_plot, file="./Figures/meanSwiss.pdf",width=8, height=6, scale=1)
+ggsave(final_plot, file="./Figures/meanSwiss.png",width=7, height=6, scale=1)
+ggsave(final_plot, file="./Figures/meanSwiss.pdf",width=7, height=6, scale=1)
 ```
 
 ```{r plotq10Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 10% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=6, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
@@ -1483,22 +1557,34 @@ desired_order <- c(
 df_plot_summary <- df_plot_meteo2 %>%
   dplyr::filter(Quantity==modality) %>%
   data.frame()
-
+lower_limit <- -20
+upper_limit <- 30
+lower_limit2 <- 0
+upper_limit2 <- 8
 # Create individual plots for each statistic
 p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanValue)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit, upper_limit), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit, upper_limit, 10), # Customize tick positions
+    labels = c(paste0("<", lower_limit), 
+               seq(lower_limit+10, upper_limit-10, 10) , 
+               paste0(">", upper_limit)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )   +
   facet_grid(.~paste("Average prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1518,17 +1604,25 @@ p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanVa
 p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit2, upper_limit2), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit2, upper_limit2, 2), # Customize tick positions
+    labels = c(seq(lower_limit2, upper_limit2-2, 2) , 
+               paste0(">", upper_limit2)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )  +
   facet_grid(.~paste("Standard deviation of the prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1549,17 +1643,26 @@ p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
 p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit, upper_limit), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit, upper_limit, 10), # Customize tick positions
+    labels = c(paste0("<", lower_limit), 
+               seq(lower_limit+10, upper_limit-10, 10) , 
+               paste0(">", upper_limit)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )   +
   facet_grid(.~paste("Median prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1580,17 +1683,25 @@ p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = med
 p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit2, upper_limit2), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit2, upper_limit2, 2), # Customize tick positions
+    labels = c(seq(lower_limit2, upper_limit2-2, 2) , 
+               paste0(">", upper_limit2)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  ) +
   facet_grid(.~paste("Interquartile range of the prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1608,20 +1719,27 @@ p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
     legend.position = "bottom")
 
 
-final_plot <- plot_grid(p_mean+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
-                        p_sd+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
-                        p_median+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
-                        p_iq+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+final_plot <- plot_grid(p_mean+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
+                        p_sd+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) ,  
+                        p_median+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
+                        p_iq+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
                         ncol = 2, nrow = 2,
-                        align = "hv",             # Align plots both horizontally and vertically
+                        align = "hv",             
                         axis = "tblr",            # Ensure axis alignment for all panels
                         rel_heights = c(1, 1),    # Adjust relative row heights
                         rel_widths = c(1, 1)      # Adjust relative column widths
 )
 plot(final_plot)
-#ggsave(final_plot, file="./Figures/q10Swiss.png",width=8, height=6, scale=1)
-
-#ggsave(final_plot, file="./Figures/q10Swiss.pdf",width=8, height=6, scale=1)
+ggsave(final_plot, file="./Figures/q10Swiss.png",width=8, height=6, scale=1)
+ggsave(final_plot, file="./Figures/q10Swiss.pdf",width=8, height=6, scale=1)
 ```
 
 ```{r plotq50Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 50% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=6, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
@@ -1635,22 +1753,34 @@ desired_order <- c(
 df_plot_summary <- df_plot_meteo2 %>%
   dplyr::filter(Quantity==modality) %>%
   data.frame()
-
+lower_limit <- -20
+upper_limit <- 30
+lower_limit2 <- 0
+upper_limit2 <- 8
 # Create individual plots for each statistic
 p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanValue)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit, upper_limit), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit, upper_limit, 10), # Customize tick positions
+    labels = c(paste0("<", lower_limit), 
+               seq(lower_limit+10, upper_limit-10, 10) , 
+               paste0(">", upper_limit)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )   +
   facet_grid(.~paste("Average prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1670,17 +1800,25 @@ p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanVa
 p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit2, upper_limit2), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit2, upper_limit2, 2), # Customize tick positions
+    labels = c(seq(lower_limit2, upper_limit2-2, 2) , 
+               paste0(">", upper_limit2)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )  +
   facet_grid(.~paste("Standard deviation of the prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1697,20 +1835,30 @@ p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
 
+
 p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit, upper_limit), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit, upper_limit, 10), # Customize tick positions
+    labels = c(paste0("<", lower_limit), 
+               seq(lower_limit+10, upper_limit-10, 10) , 
+               paste0(">", upper_limit)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )   +
   facet_grid(.~paste("Median prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1727,20 +1875,29 @@ p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = med
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
 
+
 p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit2, upper_limit2), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit2, upper_limit2, 2), # Customize tick positions
+    labels = c(seq(lower_limit2, upper_limit2-2, 2) , 
+               paste0(">", upper_limit2)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  ) +
   facet_grid(.~paste("Interquartile range of the prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1757,20 +1914,28 @@ p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
 
-final_plot <- plot_grid(p_mean+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
-                        p_sd+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
-                        p_median+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
-                        p_iq+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+
+final_plot <- plot_grid(p_mean+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
+                        p_sd+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) ,  
+                        p_median+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
+                        p_iq+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
                         ncol = 2, nrow = 2,
-                        align = "hv",             # Align plots both horizontally and vertically
+                        align = "hv",             
                         axis = "tblr",            # Ensure axis alignment for all panels
                         rel_heights = c(1, 1),    # Adjust relative row heights
                         rel_widths = c(1, 1)      # Adjust relative column widths
 )
 plot(final_plot)
-#ggsave(final_plot, file="./Figures/q50Swiss.png",width=8, height=6, scale=1)
-
-#ggsave(final_plot, file="./Figures/q50Swiss.pdf",width=8, height=6, scale=1)
+ggsave(final_plot, file="./Figures/q50Swiss.png",width=8, height=6, scale=1)
+ggsave(final_plot, file="./Figures/q50Swiss.pdf",width=8, height=6, scale=1)
 ```
 
 ```{r plotq90Swiss, fig.cap = "Summary of the SLGP probabilistic predictions for the 90% quantile of temperatures in Switzerland.", fig.fullwidth=TRUE, fig.height=6.0, fig.width=6, fig.align='center',fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
@@ -1784,22 +1949,34 @@ desired_order <- c(
 df_plot_summary <- df_plot_meteo2 %>%
   dplyr::filter(Quantity==modality) %>%
   data.frame()
-
+lower_limit <- -20
+upper_limit <- 30
+lower_limit2 <- 0
+upper_limit2 <- 8
 # Create individual plots for each statistic
 p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanValue)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit, upper_limit), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit, upper_limit, 10), # Customize tick positions
+    labels = c(paste0("<", lower_limit), 
+               seq(lower_limit+10, upper_limit-10, 10) , 
+               paste0(">", upper_limit)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )   +
   facet_grid(.~paste("Average prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1819,17 +1996,25 @@ p_mean <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = meanVa
 p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit2, upper_limit2), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit2, upper_limit2, 2), # Customize tick positions
+    labels = c(seq(lower_limit2, upper_limit2-2, 2) , 
+               paste0(">", upper_limit2)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )  +
   facet_grid(.~paste("Standard deviation of the prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1846,20 +2031,30 @@ p_sd <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = sd)) +
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
 
+
 p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = medianValue)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit, upper_limit), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit, upper_limit, 10), # Customize tick positions
+    labels = c(paste0("<", lower_limit), 
+               seq(lower_limit+10, upper_limit-10, 10) , 
+               paste0(">", upper_limit)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  )   +
   facet_grid(.~paste("Median prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1876,20 +2071,29 @@ p_median <-  ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = med
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
 
+
 p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
   geom_tile() +
   coord_fixed() +
-  scale_fill_viridis(option = "inferno", direction = +1,
-                     name = "value [°C]",
-                     guide = guide_colorbar(
-                       direction = "horizontal",
-                       barheight = unit(2, units = "mm"),
-                       barwidth = unit(50, units = "mm"),
-                       draw.ulim = FALSE,
-                       title.position = 'top',
-                       title.hjust = 0.5,
-                       label.hjust = 0.5
-                     ))  +
+  scale_fill_viridis(
+    option = "inferno", 
+    direction = +1,
+    name = "value [°C]",
+    limits = c(lower_limit2, upper_limit2), # Specify the range of the colorbar
+    oob = scales::squish, # Cap values above or below the limits
+    breaks = seq(lower_limit2, upper_limit2, 2), # Customize tick positions
+    labels = c(seq(lower_limit2, upper_limit2-2, 2) , 
+               paste0(">", upper_limit2)), # Labels for ticks
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barheight = unit(2, units = "mm"),
+      barwidth = unit(50, units = "mm"),
+      draw.ulim = FALSE,
+      title.position = 'top',
+      title.hjust = 0.5,
+      label.hjust = 0.5
+    )
+  ) +
   facet_grid(.~paste("Interquartile range of the prediction for: ", modality))+
   theme_bw() +
   labs(
@@ -1906,20 +2110,30 @@ p_iq <- ggplot(df_plot_summary, aes(x = Longitude, y = Latitude, fill = iq)) +
     axis.title.y = element_blank(),   # Remove y-axis label
     legend.position = "bottom")
 
-final_plot <- plot_grid(p_mean+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
-                        p_sd+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")), 
-                        p_median+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
-                        p_iq+theme(plot.margin = unit(c(0, 0, 0, 0), "lines")),
+
+final_plot <- plot_grid(p_mean+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
+                        p_sd+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) ,  
+                        p_median+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
+                        p_iq+
+                          theme(plot.margin = unit(c(0, 0, 0, 0), "lines"))+
+                          coord_fixed(ratio = 348/220) , 
                         ncol = 2, nrow = 2,
-                        align = "hv",             # Align plots both horizontally and vertically
+                        align = "hv",             
                         axis = "tblr",            # Ensure axis alignment for all panels
                         rel_heights = c(1, 1),    # Adjust relative row heights
                         rel_widths = c(1, 1)      # Adjust relative column widths
 )
 plot(final_plot)
-#ggsave(final_plot, file="./Figures/q90Swiss.png",width=8, height=6, scale=1)
-
-#ggsave(final_plot, file="./Figures/q90Swiss.pdf",width=8, height=6, scale=1)
+ggsave(final_plot, file="./Figures/q90Swiss.png",width=8, height=6, scale=1)
+ggsave(final_plot, file="./Figures/q90Swiss.pdf",width=8, height=6, scale=1)
 ```
 
 
+<hr>
+# References

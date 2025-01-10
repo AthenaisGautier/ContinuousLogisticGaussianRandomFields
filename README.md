@@ -115,8 +115,7 @@ In the following Figure, we display the distribution of $d_{IH}$ between true an
 
 <img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/consistency-distance2.png" alt="Illustration of the quality of the estimation evolving with sample size and number of features" width="700"/>
 
-We display the MAP estimates of the density fields for different sample sizes within a well-specified SLGP setting. 
-
+We also offer to visualise the MAP estimates of the density fields for different sample sizes within a well-specified SLGP setting. 
 
 <img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ref4mod4nFreq500.png" alt="Evolution of the estimation" width="700"/>
 
@@ -128,4 +127,4 @@ We display the MAP estimates of the density fields for different sample sizes wi
 
 
 
-[The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteMeteo.html)
+[The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteHeuristicVariance.html)

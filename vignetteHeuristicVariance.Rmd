@@ -1,7 +1,7 @@
 ---
 title: "Brief visualisation of the variance heuristic"
 author: "Athénaïs Gautier"
-date: "Last revised - October 2024"
+date: "Last revised - January 2025"
 output:
   html_document:
   #bookdown::pdf_document2 :
@@ -9,7 +9,7 @@ output:
   #  toc: FALSE
   #  number_sections: true
     citation_package: natbib
-#bibliography: bibliography.bib
+bibliography: references.bib
 header-includes:
  \usepackage{float}
  \usepackage{tikz}
@@ -57,20 +57,23 @@ library(viridis)
 
 # SLGP modelling
 
-The SLGP model, related to \citet{tokdar_bayesian_2010} and being at the center of the present contribution following up on [TODO: citation]\citep{gautier_goal-oriented_2021, gautier_continuous_2021, gautier_modelling_2023}, is itself a spatial generalization of the Logistic Gaussian Process models, which were established and studied in [TODO: citation]\citep{lenk_logistic_1988, lenk_towards_1991, leonard_density_1978}.
+The SLGP model, related to @tokdar_bayesian_2010 and being at the center of the present contribution following up on @gautier_goal-oriented_2021, @gautier_continuous_2021, @gautier_modelling_2023, is itself a spatial generalization of the Logistic Gaussian Process models, which were established and studied in @lenk_logistic_1988, @lenk_towards_1991, @leonard_density_1978.
 
-The SLGP for spatially dependent density estimation builds upon a well-behaved GP $(Z_{\xX, t})_{(\xX, t) \in [0, 1]^2}$ and studies the stochastic process obtained from applying the spatial logistic density transformation to $Z$ as follows:
+The SLGP for spatially dependent density estimation builds upon a well-behaved GP $(Z_{\xX, t})_{(\xX, t) \in D\times\mathcal{T}}$ and studies the stochastic process obtained from applying the spatial logistic density transformation to $Z$ as follows:
 
 \[
 \label{eq:informalSLGP}
-\Psi[Z](\xX, t)= \dfrac{e^{\sigma Z_{\xX, t}}}{\int_{[0, 1]} e^{\sigma  Z_{\xX, u}} \,d\lambda(u) } \text{ for all } (\xX, t) \in [0, 1]^2
+\Psi[Z](\xX, t)= \dfrac{e^{\sigma Z_{\xX, t}}}{\int_{[0, 1]} e^{\sigma  Z_{\xX, u}} \,d\lambda(u) } \text{ for all } (\xX, t) \in D\times\mathcal{T}
 \]
 At any fixed $\xX$, $\Psi[Z](\xX, \cdot)$ hence returns a random function that is, by construction, positive and integrates to one, therefore, a SLGP can be (informally) seen as a field of random pdfs. Also note that $\sigma^2$ is a variance parameter that needs to be selected.
 
 # Selecting the variance
 
-To select $\sigma^2$, we use a heustic ensuring that:
+To select $\sigma^2$, we use a heuristic ensuring that:
 $$\mathbb{E}[\max_{\xX \in D} \vert \max_{t \in \xI} \sigma Z_{\xX, t} - \min_{t \in \xI} \sigma Z_{\xX, t}\vert ] \leq 5$$
+i.e.
+
+$$\sigma \leq \frac{5}{\mathbb{E}[\max_{\xX \in D} \vert \max_{t \in \xI} Z_{\xX, t} - \min_{t \in \xI}  Z_{\xX, t}\vert ]}$$
 
 This heuristic controls the range of values that the SLGP can take, typically restricting it to $[0, e^5\approx 148]$.
 
@@ -78,7 +81,7 @@ This heuristic controls the range of values that the SLGP can take, typically re
 
 To justify this choice, we offer a qualitative analysis by drawing GP realizations and observing the corresponding SLGPs with varying values of the GP’s range defined as $\max_{\xX \in D} \vert \max_{t \in \xI} Z_{\xX, t} - \min_{t \in \xI} Z_{\xX, t}\vert$.  We illustrate this with several simulations.
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(MASS)
 
 # Define a 2D grid
@@ -129,11 +132,11 @@ dfplot <- dfplot %>%
 
 In these simulations, we generate 4 realisations of GPs with two levels of smoothness, ensuring that the range $\max_{\xX \in D} \vert \max_{t \in \xI} Z_{\xX, t} - \min_{t \in \xI} Z_{\xX, t}\vert \approx 1$. Below is a visual representation of these GPs.
 
-```{r figure1, fig.cap = "GP realisations considered", fig.fullwidth=TRUE, fig.height=4, fig.width=8, fig.align='center' ,fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
+```{r figure1, fig.cap = "GP realisations considered", fig.fullwidth=TRUE, fig.height=2.5, fig.width=8, fig.align='center' ,fig.pos="H", warning=FALSE, message=FALSE, echo=FALSE}
 library(ggplot2)
 library(viridis)
 ggplot(dfplot, mapping=aes(x=t, y=x, fill=value))+
-  geom_raster()+
+  geom_raster(interpolate=TRUE)+
   facet_grid(.~name)+  
   scale_fill_viridis(option = "viridis")+
   theme_bw()
@@ -185,3 +188,6 @@ These numerical experiment illustrate the influence of $\sigma$ on the SLGP's ex
 
 Based on these observations, we have implemented SLGPs to maintain moderate ranges by choosing $\sigma$ a priori (i.e. without data infering in this choice) to achieve an approximate GP range of 5, balancing flexibility and stability.
 
+<hr>
+
+## References

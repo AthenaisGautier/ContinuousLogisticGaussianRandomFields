@@ -1,5 +1,5 @@
 # Continuous logistic Gaussian random measure fields for spatial distributional modelling
-### By Athenais Gautier and David Ginsbourger
+### By Athénaïs Gautier and David Ginsbourger
 
 This repository contains the code and data associated with our paper titled "Continuous logistic Gaussian random measure fields for spatial distributional modelling". The detailed research can be accessed through our preprint: [arXiv:2110.02876](https://arxiv.org/abs/2110.02876).
 
@@ -27,16 +27,14 @@ There exist $C, \alpha_1, \alpha_2>0$ such that for all $\mathbf{x},
 
 $$k([\mathbf{x}, t], [\mathbf{x}, t]) + k([\mathbf{x}',
 t'],[\mathbf{x}', t']) - 2 k([\mathbf{x}, t],
-[\mathbf{x}', t']) \leq C \cdot \max(\Vert \mathbf{x}-
-\mathbf{x}' \Vert_\infty ^{\alpha_1}, \Vert t - t' \Vert_\infty
-^{\alpha_2})$$
+[\mathbf{x}', t']) \leq C \cdot \max(\Vert \mathbf{x} - \mathbf{x}' \Vert_\infty ^{\alpha_1}, \vert t - t' \vert ^{\alpha_2})$$
 
 **Theorem 2**
 
 Consider the SLGP $Y$ induced by a centred GP $Z$ with covariance kernel $k$: 
 
 $$Y_{\mathbf{x}, t} := \dfrac{e^{Z_{\mathbf{x},
-t}}}{\int_\mathcal{T}e^{Z_{\mathbf{x}, u}} \,d\lambda(u) } \text{ for
+t}}}{\int_\mathcal{T}e^{Z_{\mathbf{x}, u}} \,d\lambda(u) } \ \text{ for
 all } (\mathbf{x}, t) \in D \times \mathcal{T}
 $$
 
@@ -67,6 +65,8 @@ Where for two pdfs $f_1$, $f_2$ on $\mathcal{T}$:
 * $V$ denotes a squared log-ratio dissimilarity: $V(f_1, f_2) := \int_\mathcal{T} \left( \log \frac{ f_1(u)}{f_2(u)}\right)^2 \,du$
 
 * $d_{TV}$ denotes the Total Variation distance: $d_{TV}(f_1, f_2) := \int_\mathcal{T} \left\vert f_1(u) - f_2(u) \right\vert \,du$
+
+We performed numerical validation of our bnound's tightness, yielding the following figure.
 
 <img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ratesHolder.png" alt="Illustration of the rates" width="700"/>
 

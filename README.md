@@ -136,6 +136,6 @@ $$
 
 then, the range of values of $Z$  $\max_{\xX \in D} \vert \max_{t \in \xI} Z_{\xX, t} - \min_{t \in \xI} Z_{\xX, t}\vert$ is proportional to $\sigma$, and has an impact on the behaviour of the SLGP's prior.
 
-<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ChoiceSigma.png" alt="Influence of sigma in a SLGP" width="700"/>
+<img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ChoiceSigma.png" alt="Influence of sigma in a SLGP" width="900"/>
 
 This motivated us to implement SLGPs to maintain moderate ranges of values by choosing $\sigma$ a priori (i.e. without data infering in this choice) to achieve an approximate GP range of 5, balancing flexibility and stability.

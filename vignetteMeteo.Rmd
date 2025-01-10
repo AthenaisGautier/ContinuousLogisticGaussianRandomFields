@@ -1334,8 +1334,17 @@ gc()
 ```
 
 ```{r LoadQtiesWholeSwiss}
+files <- c("valuesQtyPart1.RData", "valuesQtyPart2.RData", "valuesQtyPart3.RData")
+data_list <- list()
+for (file in files) {
+  load(file)
+  object_name <- ls()[1]  # Assumes one object per file
+  data_list[[file]] <- get(object_name)
+  rm(list = object_name)
+}
+# Concatenate all data frames in the list into a single data frame
+df_plot_meteo2 <- do.call(rbind, data_list)
 
-load(file="valuesQtyOverSwitzerland.RData")
 df_plot_meteo2 <-  df_plot_meteo2 %>%
   pivot_longer(-c("Latitude", "Longitude", "Altitude", "ID", "Quantity"))%>%
   group_by(Latitude, Longitude, Altitude, ID, Quantity) %>%

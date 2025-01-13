@@ -1324,7 +1324,8 @@ split_data <- split(df_plot_meteo2, cut(seq_len(nrow(df_plot_meteo2)), 3, labels
 # Save each part into a separate file
 for (i in seq_along(split_data)) {
   file_name <- paste0("valuesQtyPart", i, ".RData")
-  save(split_data[[i]], file = file_name)
+  temp <- split_data[[i]]
+  save(temp, file = file_name)
   cat("Saved file:", file_name, "\n")  # Confirmation message
 }
 # save(df_plot_meteo2, file="valuesQtyOverSwitzerland.RData")
@@ -1335,15 +1336,11 @@ gc()
 
 ```{r LoadQtiesWholeSwiss}
 files <- c("valuesQtyPart1.RData", "valuesQtyPart2.RData", "valuesQtyPart3.RData")
-data_list <- list()
+df_plot_meteo2 <- data.frame()
 for (file in files) {
   load(file)
-  object_name <- ls()[1]  # Assumes one object per file
-  data_list[[file]] <- get(object_name)
-  rm(list = object_name)
+  df_plot_meteo2 <- rbind(df_plot_meteo2, temp)
 }
-# Concatenate all data frames in the list into a single data frame
-df_plot_meteo2 <- do.call(rbind, data_list)
 
 df_plot_meteo2 <-  df_plot_meteo2 %>%
   pivot_longer(-c("Latitude", "Longitude", "Altitude", "ID", "Quantity"))%>%

@@ -145,13 +145,13 @@ We can also perform simultaneous quantile estimation. For visualisation purpose 
 [The considered vignette can be read here](https://htmlpreview.github.io/?https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/vignetteHeuristicVariance.html)
 
 We visually motivate our handling of the variance, by showing that it plays a highly influencal role in the SLGP's numerical stability.
-Indeed, let us write our SLGP by transforming a  well-behaved GP $(Z_{\xX, t})_{(\xX, t) \in D\times\mathcal{T}}$:
+Indeed, let us write our SLGP by transforming a  well-behaved GP $(Z_{\mathbf{x}, t})_{(\mathbf{x}, t) \in D\times\mathcal{T}}$:
 
 $$
 \Psi[Z](\mathbf{x}, t)= \dfrac{e^{Z_{\mathbf{x}, t}}}{\int_{[0, 1]} e^{Z_{\mathbf{x}, u}} \,d\lambda(u) } \text{ for all } (\mathbf{x}, t) \in D\times\mathcal{T}
 $$
 
-then, the range of values of $Z$  $\max_{\xX \in D} \vert \max_{t \in \xI} Z_{\xX, t} - \min_{t \in \xI} Z_{\xX, t}\vert$ is proportional to $\sigma$, and has an impact on the behaviour of the SLGP's prior.
+then, the range of values of $Z$  $\max_{\mathbf{x} \in D} \vert \max_{t \in \xI} Z_{\mathbf{x}, t} - \min_{t \in \xI} Z_{\mathbf{x}, t}\vert$ is proportional to $\sigma$, and has an impact on the behaviour of the SLGP's prior.
 
 <img src="https://github.com/AthenaisGautier/ContinuousLogisticGaussianRandomFields/blob/main/figures/ChoiceSigma.png" alt="Influence of sigma in a SLGP" width="900"/>
 
